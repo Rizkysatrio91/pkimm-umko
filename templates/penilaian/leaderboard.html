@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-lg sm:text-2xl font-bold text-maroon-dark">Leaderboard Peserta DAD</h2>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fadeIn">
+        <div class="table-responsive">
+            <table class="w-full text-sm">
+                <thead class="bg-maroon text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-center font-semibold w-16">Rank</th>
+                        <th class="px-4 py-3 text-left font-semibold">Nama</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">NPM</th>
+                        <th class="px-4 py-3 text-center font-semibold hidden lg:table-cell">Interview</th>
+                        <th class="px-4 py-3 text-center font-semibold hidden lg:table-cell">Aktivitas</th>
+                        <th class="px-4 py-3 text-center font-semibold">Total Akhir</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for r in leaderboard %}
+                    <tr class="hover:bg-cream/50 transition table-row-hover
+                        {% if r.id_pendaftaran.id_biodata.id_user == request.user %}bg-gold/10{% endif %}">
+                        <td class="px-4 py-3 text-center">
+                            {% if r.peringkat == 1 %}
+                                <span class="text-xl" title="Peringkat 1">&#129351;</span>
+                            {% elif r.peringkat == 2 %}
+                                <span class="text-xl" title="Peringkat 2">&#129352;</span>
+                            {% elif r.peringkat == 3 %}
+                                <span class="text-xl" title="Peringkat 3">&#129353;</span>
+                            {% else %}
+                                <span class="font-semibold text-gray-600">{{ r.peringkat }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-gray-900">
+                            {{ r.id_pendaftaran.id_biodata.nama_lengkap }}
+                            {% if r.id_pendaftaran.id_biodata.id_user == request.user %}
+                            <span class="ml-1 text-xs text-maroon font-semibold">(Anda)</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 hidden md:table-cell font-mono">{{ r.id_pendaftaran.id_biodata.npm }}</td>
+                        <td class="px-4 py-3 text-center hidden lg:table-cell">{{ r.nilai_interview|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-center hidden lg:table-cell">{{ r.total_skor_aktivitas|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-center font-bold text-maroon-dark">{{ r.total_akhir|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">Belum ada data leaderboard.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Laporan - PK IMM FTIK UMKO{% endblock %}
+{% block page_title %}Laporan & Export Data{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto"
+     x-data="{ periode: '{{ bulan_tahun_choices.0.value }}' }">
+
+    <!-- Filter Periode -->
+    <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Filter Periode</h3>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div class="w-full sm:w-72">
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Pilih Bulan &amp; Tahun</label>
+                <select x-model="periode"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
+                    <option value="">Semua Periode (Tanpa Filter)</option>
+                    {% for item in bulan_tahun_choices %}
+                    <option value="{{ item.value }}">{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mt-4 sm:mt-5">
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Pilih periode untuk memfilter data.<br>
+                    Kosongkan untuk mengambil semua data.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pratinjau Periode Terpilih -->
+    <div class="mb-5 px-1">
+        <span class="text-xs text-gray-500">Data yang akan diexport: </span>
+        <span class="text-xs font-semibold text-maroon"
+              x-text="periode ? document.querySelector('select[x-model=\'periode\'] option:checked')?.text : 'Semua Periode'">
+        </span>
+    </div>
+
+    <!-- Cards Laporan -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- Card 1: Rekap Data Kader -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col scroll-reveal card-hover">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Data Kader</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Data seluruh kader terdaftar di PK IMM FTIK UMKO beserta biodata lengkap.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:kader_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                    </svg>
+                    Export PDF
+                </a>
+                <a :href="'{% url 'laporan:kader_excel' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Export Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Card 2: Rekap Pendaftar DAD -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col scroll-reveal card-hover">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Pendaftar DAD</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Data pendaftar Darul Arqom Dasar beserta status verifikasi administrasi.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:pendaftar_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                    </svg>
+                    Export PDF
+                </a>
+                <a :href="'{% url 'laporan:pendaftar_excel' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Export Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Card 3: Rekap Kelulusan DAD -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col scroll-reveal card-hover">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Kelulusan DAD</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Data kelulusan peserta DAD beserta nilai, peringkat, dan status akhir.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:kelulusan_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                    </svg>
+                    Export PDF
+                </a>
+                <a :href="'{% url 'laporan:kelulusan_excel' %}' + (periode ? '?periode=' + periode : '')"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Export Excel
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Info Box -->
+    <div class="mt-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-xs text-blue-700 leading-relaxed">
+            <strong>PDF</strong> — dihasilkan dari template Word resmi PK IMM FTIK UMKO dengan kop surat, tanda tangan (perlu ditandatangani basah), menggunakan Microsoft Word secara otomatis.<br>
+            <strong>Excel (.xlsx)</strong> — tabel data lengkap terstruktur, cocok untuk analisis dan pengolahan data lebih lanjut.
+        </p>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         Detail Per-Orang — Unduh informasi lengkap per kader/pendaftar
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="mt-10 mb-3">
+        <h2 class="text-lg font-bold text-maroon">Unduh Detail Per-Orang</h2>
+        <p class="text-xs text-gray-500 mt-1">Pilih satu kader/pendaftar/peserta kelulusan untuk mengunduh informasi lengkap dalam PDF atau Excel.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- Detail Kader -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
+             x-data="{ pk: '' }">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Detail Kader</h3>
+            <p class="text-xs text-gray-500 mb-3">Informasi lengkap satu kader (biodata, akun, riwayat pendaftaran).</p>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih kader</label>
+            <select x-model="pk"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
+                <option value="">— Pilih kader —</option>
+                {% for k in kader_choices %}
+                <option value="{{ k.id_biodata }}">{{ k.nama_lengkap }} — {{ k.npm }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 mt-auto">
+                <a :href="pk ? '{% url 'laporan:kader_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    PDF
+                </a>
+                <a :href="pk ? '{% url 'laporan:kader_detail_excel' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Detail Pendaftar DAD -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
+             x-data="{ pk: '' }">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6M4 6h16M4 6v12a2 2 0 002 2h12a2 2 0 002-2V6"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Detail Pendaftar DAD</h3>
+            <p class="text-xs text-gray-500 mb-3">Biodata + verifikasi + kelompok + interview + aktivitas + absensi.</p>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih pendaftar</label>
+            <select x-model="pk"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
+                <option value="">— Pilih pendaftar —</option>
+                {% for p in pendaftar_choices %}
+                <option value="{{ p.id_pendaftaran }}">{{ p.id_biodata__nama_lengkap }} — {{ p.no_registrasi }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 mt-auto">
+                <a :href="pk ? '{% url 'laporan:pendaftar_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    PDF
+                </a>
+                <a :href="pk ? '{% url 'laporan:pendaftar_detail_excel' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Detail Kelulusan -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
+             x-data="{ pk: '' }">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Detail Kelulusan</h3>
+            <p class="text-xs text-gray-500 mb-3">Semua data pendaftar + skor akhir + peringkat + status kelulusan.</p>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih peserta</label>
+            <select x-model="pk"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
+                <option value="">— Pilih peserta —</option>
+                {% for r in kelulusan_choices %}
+                <option value="{{ r.id_rekap }}">#{{ r.peringkat|default:"-" }} {{ r.id_pendaftaran__id_biodata__nama_lengkap }} — {{ r.id_pendaftaran__id_biodata__npm }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 mt-auto">
+                <a :href="pk ? '{% url 'laporan:kelulusan_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    PDF
+                </a>
+                <a :href="pk ? '{% url 'laporan:kelulusan_detail_excel' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
+                   :class="pk ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 pointer-events-none'"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-lg text-xs font-semibold transition">
+                    Excel
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

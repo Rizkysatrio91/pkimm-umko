@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Input Penilaian Hari ke-{{ hari_ke }} - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'panitia:aktivitas_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">Penilaian Hari ke-{{ hari_ke }}</h2>
+    </div>
+
+    <!-- Peserta Info -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Nama</p>
+                <p class="font-semibold text-gray-900">{{ pendaftaran.id_biodata.nama_lengkap }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">NPM</p>
+                <p class="font-semibold text-gray-900 font-mono">{{ pendaftaran.id_biodata.npm }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Program Studi</p>
+                <p class="font-semibold text-gray-900">{{ pendaftaran.id_biodata.program_studi }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Hari ke</p>
+                <p class="font-semibold text-gray-900">{{ hari_ke }} dari 3</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+            <h3 class="text-lg font-semibold text-gray-900">Aspek Penilaian</h3>
+
+            {% for field in form %}
+            {% if field.name != 'catatan' %}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label for="{{ field.id_for_label }}" class="text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                    </label>
+                    <span class="text-xs text-gray-400">0 - 100</span>
+                </div>
+                <input type="number" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                       value="{{ field.value|default:'' }}"
+                       min="0" max="100" step="0.01" placeholder="0 - 100"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                              {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                {% for error in field.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <!-- Poin Kedisiplinan (auto dari data absensi QR) -->
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="text-sm font-medium text-gray-700">
+                        Poin Kedisiplinan
+                        <span class="ml-1 text-xs font-normal text-maroon bg-maroon/10 px-2 py-0.5 rounded-full align-middle">auto</span>
+                    </label>
+                    <span class="text-xs text-gray-400">dari data absensi QR</span>
+                </div>
+                <input type="number" value="{{ poin_kedisiplinan_preview|default:'0.00' }}"
+                       readonly disabled
+                       class="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg text-sm cursor-not-allowed">
+                <p class="mt-1 text-xs text-gray-500">
+                    Dihitung otomatis dari data absensi QR sesi is_absensi hari ini
+                    (HADIR = 100, IZIN/SAKIT = 60, ALPHA = 0). Tidak bisa di-edit manual.
+                </p>
+            </div>
+
+            <!-- Catatan -->
+            {% with field=form.catatan %}
+            <div>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ field.label }} <span class="text-gray-400">(opsional)</span>
+                </label>
+                <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" rows="3"
+                          placeholder="Catatan tambahan (opsional)"
+                          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm">{{ field.value|default:'' }}</textarea>
+            </div>
+            {% endwith %}
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'panitia:aktivitas_list' %}"
+               class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm">
+                Batal
+            </a>
+            <button type="submit"
+                    class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                Simpan Nilai
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

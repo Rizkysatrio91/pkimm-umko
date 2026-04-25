@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page {
+        size: A4 landscape;
+        margin: 1.5cm;
+    }
+    body {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 10px;
+        color: #000000;
+    }
+    .header {
+        text-align: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4A0E1A;
+        padding-bottom: 8px;
+    }
+    .header h1 {
+        font-size: 14px;
+        color: #000000;
+        margin: 0;
+        padding: 0;
+    }
+    .header h2 {
+        font-size: 12px;
+        color: #000000;
+        margin: 4px 0 0 0;
+        padding: 0;
+    }
+    .periode {
+        text-align: center;
+        margin-bottom: 12px;
+        font-size: 10px;
+        color: #000000;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+    th {
+        background-color: #4A0E1A;
+        color: #ffffff;
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 10px;
+        border: 1px solid #333333;
+    }
+    td {
+        padding: 5px 8px;
+        font-size: 10px;
+        border: 1px solid #cccccc;
+    }
+    .footer {
+        text-align: right;
+        font-size: 9px;
+        color: #999999;
+        margin-top: 15px;
+        border-top: 1px solid #cccccc;
+        padding-top: 6px;
+    }
+</style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ header_org }}</h1>
+        <h2>{{ judul }}</h2>
+    </div>
+    <div class="periode">
+        Periode: {{ mulai }} s/d {{ akhir }}
+    </div>
+
+    {% block table %}{% endblock %}
+
+    <div class="footer">
+        Dicetak pada: {% now "d/m/Y H:i" %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Cek Kelulusan - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto text-center py-8">
+    {% if not pendaftaran %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Belum Mendaftar</h2>
+        <p class="text-gray-500">Anda belum mendaftar DAD sehingga belum ada data kelulusan.</p>
+    </div>
+
+    {% elif pendaftaran.status_kelulusan == 'lulus' %}
+    <div class="bg-white rounded-xl shadow-sm border-2 border-green-200 p-8">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+        </div>
+        <div class="inline-block bg-green-100 text-green-800 text-sm font-bold px-4 py-1.5 rounded-full mb-4">
+            LULUS
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Selamat!</h2>
+        <p class="text-gray-600">
+            Anda dinyatakan <span class="font-bold text-green-600">LULUS</span>
+            Darul Arqam Dasar (DAD) PK IMM FTIK UMKO.
+        </p>
+        <p class="text-sm text-gray-500 mt-4">
+            No. Registrasi: {{ pendaftaran.no_registrasi }}
+        </p>
+    </div>
+
+    {% elif pendaftaran.status_kelulusan == 'tidak_lulus' %}
+    <div class="bg-white rounded-xl shadow-sm border-2 border-red-200 p-8">
+        <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <div class="inline-block bg-red-100 text-red-800 text-sm font-bold px-4 py-1.5 rounded-full mb-4">
+            TIDAK LULUS
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Mohon Maaf</h2>
+        <p class="text-gray-600">
+            Anda dinyatakan <span class="font-bold text-red-600">Tidak Lulus</span>
+            Darul Arqam Dasar (DAD) PK IMM FTIK UMKO periode ini.
+        </p>
+        <p class="text-sm text-gray-500 mt-4">
+            Silakan mengikuti DAD pada periode berikutnya. Semangat!
+        </p>
+    </div>
+
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border-2 border-yellow-200 p-8">
+        <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Menunggu Keputusan</h2>
+        <p class="text-gray-600">
+            Kelulusan Anda belum ditentukan. Silakan cek kembali secara berkala.
+        </p>
+        <p class="text-sm text-gray-500 mt-4">
+            No. Registrasi: {{ pendaftaran.no_registrasi }}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

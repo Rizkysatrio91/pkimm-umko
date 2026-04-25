@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: A4; margin: 1.8cm 1.5cm 1.5cm 1.5cm; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 10px; color: #000000; margin: 0; padding: 0; }
+
+    .kop { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    .kop td { padding: 2px 4px; border: none; }
+    .kop-logo { width: 60px; text-align: center; vertical-align: middle; }
+    .kop-logo img { width: 55px; height: 55px; }
+    .kop-text { text-align: center; vertical-align: middle; }
+    .kop-text .org1 { font-size: 12px; font-weight: bold; color: #000000; letter-spacing: 0.5px; }
+    .kop-text .org2 { font-size: 11px; font-weight: bold; color: #000000; }
+    .kop-text .org3 { font-size: 10px; color: #000000; }
+    .kop-text .alamat { font-size: 8px; color: #000000; }
+    .garis-maroon-tebal { border-top: 3px solid #6B1D2A; margin: 3px 0 0 0; }
+    .garis-maroon-tipis { border-top: 1px solid #6B1D2A; margin: 2px 0 8px 0; }
+
+    .judul-laporan { text-align: center; font-size: 13px; font-weight: bold; color: #000000; margin: 10px 0 2px 0; }
+    .sub-periode { text-align: center; font-size: 9px; color: #000000; margin-bottom: 10px; }
+
+    .info-box { background: #f9f4ed; border: 1px solid #d9c8b0; padding: 6px 10px; margin-bottom: 10px; }
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table td { font-size: 9px; padding: 2px 4px; border: none; }
+    .info-table td.label { font-weight: bold; width: 110px; color: #000000; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 6px 0 8px 0; }
+    .data-table th { background-color: #6B1D2A; color: #fff; padding: 5px 6px; font-size: 9px; text-align: center; border: 1px solid #4A0E1A; }
+    .data-table td { padding: 4px 6px; font-size: 9px; border: 1px solid #ddd; vertical-align: top; text-align: center; }
+    .data-table td.td-left { text-align: left; }
+    .data-table tr.stripe td { background-color: #F2E4E7; }
+    .empty-row td { text-align: center; color: #888; font-style: italic; }
+
+    .summary { font-size: 9px; margin: 4px 0 10px 0; }
+    .summary strong { color: #000000; }
+
+    .catatan { background: #fffbeb; border-left: 3px solid #D4A843; padding: 5px 8px; font-size: 9px; margin: 6px 0 12px 0; color: #000000; }
+
+    .ttd-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+    .ttd-table td { text-align: center; font-size: 9px; padding: 3px 10px; border: none; vertical-align: top; }
+    .ttd-kota { text-align: left; font-size: 9px; margin-bottom: 4px; }
+    .ttd-jabatan { font-weight: bold; }
+    .ttd-org { color: #000000; }
+    .ttd-spacer { height: 50px; }
+    .ttd-nama { font-weight: bold; text-decoration: underline; border-top: 1px solid #333; padding-top: 3px; }
+</style>
+</head>
+<body>
+
+<!-- KOP SURAT -->
+<table class="kop">
+    <tr>
+        <td class="kop-logo">
+            <img src="{{ logo_path }}" alt="Logo PK IMM">
+        </td>
+        <td class="kop-text">
+            <div class="org1">PIMPINAN KOMISARIAT</div>
+            <div class="org2">IKATAN MAHASISWA MUHAMMADIYAH</div>
+            <div class="org2">FAKULTAS TEKNIK DAN ILMU KOMPUTER</div>
+            <div class="org3">UNIVERSITAS MUHAMMADIYAH KOTABUMI</div>
+            <div class="alamat">Jalan Hasan Kepala Ratu No. 1052 Sindangsari Lampung Utara</div>
+        </td>
+        <td class="kop-logo"></td>
+    </tr>
+</table>
+<div class="garis-maroon-tebal"></div>
+<div class="garis-maroon-tipis"></div>
+
+<!-- JUDUL -->
+<div class="judul-laporan">{{ judul_laporan }}</div>
+<div class="sub-periode">Periode: {{ periode }}</div>
+
+<!-- INFO BOX -->
+<div class="info-box">
+    <table class="info-table">
+        <tr>
+            <td class="label">Jenis Laporan</td>
+            <td>: {{ jenis_laporan }}</td>
+            <td class="label">Tanggal Cetak</td>
+            <td>: {{ tanggal_cetak }}</td>
+        </tr>
+        <tr>
+            <td class="label">Dicetak Oleh</td>
+            <td>: {{ nama_pencetak }}</td>
+            <td class="label">Jabatan</td>
+            <td>: {{ jabatan_pencetak }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- TABEL DATA -->
+<table class="data-table">
+    <thead>
+        <tr>
+            <th style="width:6%;">Rank</th>
+            <th style="width:19%;">Nama</th>
+            <th style="width:12%;">NPM</th>
+            <th style="width:12%;">Jenis Kelamin</th>
+            <th style="width:12%;">Skor Aktivitas</th>
+            <th style="width:12%;">Nilai Interview</th>
+            <th style="width:10%;">Total Akhir</th>
+            <th style="width:17%;">Status Kelulusan</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr{% if forloop.counter|divisibleby:2 %} class="stripe"{% endif %}>
+            <td>{{ row.0 }}</td>
+            <td class="td-left">{{ row.1 }}</td>
+            <td>{{ row.2 }}</td>
+            <td>{{ row.3 }}</td>
+            <td>{{ row.4 }}</td>
+            <td>{{ row.5 }}</td>
+            <td>{{ row.6 }}</td>
+            <td>{{ row.7 }}</td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row">
+            <td colspan="8">Tidak ada data untuk periode yang dipilih.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- SUMMARY -->
+<div class="summary">
+    <strong>Total Peserta:</strong> {{ total_data }} &nbsp;&nbsp;
+    <strong>Lulus:</strong> {{ total_aktif }} &nbsp;&nbsp;
+    <strong>Tidak Lulus:</strong> {{ total_nonaktif }}
+</div>
+
+<!-- CATATAN -->
+{% if catatan %}
+<div class="catatan"><strong>Catatan:</strong> {{ catatan }}</div>
+{% endif %}
+
+<!-- TANDA TANGAN -->
+<div class="ttd-kota">Kotabumi, {{ tanggal_cetak }}</div>
+<table class="ttd-table">
+    <tr>
+        <td>
+            <div class="ttd-jabatan">Sekretaris Umum</div>
+            <div class="ttd-org">PK IMM FTIK UMKO</div>
+            <div class="ttd-spacer"></div>
+            <div class="ttd-nama">( ________________________ )</div>
+        </td>
+        <td>
+            <div class="ttd-jabatan">Ketua Umum</div>
+            <div class="ttd-org">PK IMM FTIK UMKO</div>
+            <div class="ttd-spacer"></div>
+            <div class="ttd-nama">( ________________________ )</div>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

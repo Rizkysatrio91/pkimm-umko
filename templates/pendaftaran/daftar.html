@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Pendaftaran DAD - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <h2 class="text-2xl font-bold text-maroon-dark">Pendaftaran Darul Arqam Dasar (DAD)</h2>
+    <p class="text-gray-500">Data Anda akan diverifikasi secara otomatis dengan database akademik UMKO.</p>
+
+    {% if periode_aktif %}
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center space-x-3">
+        <svg class="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <div>
+            <p class="font-medium text-green-800">{{ periode_aktif.nama_periode }}</p>
+            <p class="text-sm text-green-700">Pendaftaran ditutup pada {{ periode_aktif.tgl_tutup_administrasi|date:"d M Y H:i" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ringkasan Data yang Akan Diverifikasi -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Data Anda yang Akan Diverifikasi</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">NPM</p>
+                <p class="font-medium text-gray-900 font-mono">{{ biodata.npm }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Nama Lengkap</p>
+                <p class="font-medium text-gray-900">{{ biodata.nama_lengkap }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Program Studi</p>
+                <p class="font-medium text-gray-900">{{ biodata.program_studi }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Fakultas</p>
+                <p class="font-medium text-gray-900">{{ biodata.fakultas }}</p>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-700">
+                <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                Data Anda akan diverifikasi secara otomatis dengan database akademik UMKO.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form Konfirmasi -->
+    <form method="POST" class="space-y-6" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <input type="checkbox" name="konfirmasi" id="konfirmasi" required
+                       class="w-4 h-4 text-[#6B1D2A] border-gray-300 rounded">
+                <label for="konfirmasi" class="ml-2 text-sm text-gray-700">
+                    Saya menyatakan data biodata saya sudah benar dan lengkap
+                </label>
+            </div>
+            {% for error in form.konfirmasi.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit"
+                    :disabled="isSubmitting"
+                    :class="isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-maroon-dark'"
+                    class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold focus:ring-4 focus:ring-maroon/20 transition">
+                <span x-show="!isSubmitting">Daftar DAD</span>
+                <span x-show="isSubmitting" class="inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Memverifikasi...
+                </span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

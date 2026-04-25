@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Sejarah - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-maroon-dark">Sejarah Organisasi</h2>
+        <a href="{% url 'profil_admin:sejarah_create' %}"
+           class="bg-maroon text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark transition text-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Tambah
+        </a>
+    </div>
+
+    {% if sejarah_list %}
+    <div class="space-y-4">
+        {% for s in sejarah_list %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-5 hover:shadow-md transition">
+            {% if s.gambar %}
+            <img src="{{ s.gambar.url }}" alt="{{ s.judul }}" class="w-20 h-16 rounded-lg object-cover flex-shrink-0">
+            {% else %}
+            <div class="w-20 h-16 rounded-lg bg-maroon/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-8 h-8 text-maroon/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-bold text-gray-900">{{ s.judul }}</h3>
+                    {% if s.is_active %}
+                    <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">Aktif</span>
+                    {% else %}
+                    <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-medium">Nonaktif</span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-500 text-sm line-clamp-2">{{ s.konten|truncatewords:30 }}</p>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <a href="{% url 'profil_admin:sejarah_update' s.pk %}" class="text-maroon hover:text-maroon-dark p-1.5 rounded-lg hover:bg-maroon/5 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </a>
+                <form method="POST" action="{% url 'profil_admin:sejarah_delete' s.pk %}" class="inline" onsubmit="return confirm('Hapus sejarah ini?')">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-white rounded-xl border border-gray-200">
+        <p class="text-gray-400">Belum ada data sejarah.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

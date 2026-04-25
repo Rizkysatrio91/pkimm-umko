@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Profil Saya - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6 animate-fadeIn">
+    <h2 class="text-2xl font-bold text-maroon-dark">Profil Saya</h2>
+
+    <!-- Profile Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+
+            <!-- Foto Profil -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Foto Profil</h3>
+                <div class="flex items-center gap-6" x-data="{ preview: null }">
+                    <!-- Avatar / Preview -->
+                    <div class="relative flex-shrink-0">
+                        {% if user_foto_url %}
+                        <img :src="preview || '{{ user_foto_url }}'"
+                             alt="Foto Profil"
+                             class="w-24 h-24 rounded-full object-cover border-4 border-maroon/20 shadow-lg">
+                        {% else %}
+                        <div x-show="!preview"
+                             class="w-24 h-24 rounded-full bg-maroon flex items-center justify-center text-white font-bold text-3xl border-4 border-maroon/20 shadow-lg">
+                            {{ user.username|first|upper }}
+                        </div>
+                        <img x-show="preview" :src="preview"
+                             class="w-24 h-24 rounded-full object-cover border-4 border-maroon/20 shadow-lg"
+                             style="display:none;">
+                        {% endif %}
+                        <!-- Kamera badge -->
+                        <label for="foto-upload"
+                               class="absolute bottom-0 right-0 bg-maroon text-white rounded-full p-1.5 cursor-pointer hover:bg-maroon-dark transition shadow-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </label>
+                    </div>
+
+                    <!-- Tombol & info -->
+                    <div>
+                        <label for="foto-upload"
+                               class="inline-flex items-center gap-2 bg-maroon text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-maroon-dark transition text-sm font-medium btn-hover">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Pilih Foto
+                        </label>
+                        <input type="file" name="foto_profil" id="foto-upload"
+                               accept="image/jpeg,image/png,image/jpg"
+                               class="hidden"
+                               @change="
+                                   const file = $event.target.files[0];
+                                   if (file) {
+                                       if (file.size > 2 * 1024 * 1024) {
+                                           alert('Ukuran foto maksimal 2MB');
+                                           $event.target.value = '';
+                                           return;
+                                       }
+                                       const reader = new FileReader();
+                                       reader.onload = (e) => { preview = e.target.result; };
+                                       reader.readAsDataURL(file);
+                                   }
+                               ">
+                        <p class="text-xs text-gray-500 mt-2">Format: JPG, JPEG, PNG. Maks. 2MB.</p>
+                        {% if user_foto_url %}
+                        <p class="text-xs text-green-600 mt-1">&#10003; Foto sudah diunggah</p>
+                        {% endif %}
+                        {% if profile_form.foto_profil.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ profile_form.foto_profil.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <!-- Informasi Akun -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Informasi Akun</h3>
+                <div class="space-y-4">
+                    {% for field in profile_form %}
+                    {% if field.name != 'foto_profil' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                        <input type="{% if 'email' in field.name %}email{% else %}text{% endif %}"
+                               name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                               value="{{ field.value|default:'' }}"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                                      {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                        {% for error in field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <input type="text" value="{{ user.get_role_display }}" disabled
+                               class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="bg-maroon text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark transition btn-hover">
+                Simpan Perubahan
+            </button>
+        </form>
+    </div>
+
+    <!-- Change Password -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Ubah Password</h3>
+        <form method="POST" class="space-y-4" x-data="{ show1: false, show2: false, show3: false }">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_password">
+            <!-- Password Lama -->
+            <div>
+                <label for="{{ password_form.old_password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ password_form.old_password.label }}</label>
+                <div class="relative">
+                    <input :type="show1 ? 'text' : 'password'" name="{{ password_form.old_password.html_name }}" id="{{ password_form.old_password.id_for_label }}"
+                           placeholder="{{ password_form.old_password.field.widget.attrs.placeholder|default:'' }}"
+                           class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                                  {% if password_form.old_password.errors %}border-red-400 bg-red-50{% endif %}">
+                    <button type="button" @click="show1 = !show1" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg x-show="!show1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <svg x-show="show1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    </button>
+                </div>
+                {% for error in password_form.old_password.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <!-- Password Baru -->
+            <div>
+                <label for="{{ password_form.new_password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ password_form.new_password1.label }}</label>
+                <div class="relative">
+                    <input :type="show2 ? 'text' : 'password'" name="{{ password_form.new_password1.html_name }}" id="{{ password_form.new_password1.id_for_label }}"
+                           placeholder="{{ password_form.new_password1.field.widget.attrs.placeholder|default:'' }}"
+                           class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                                  {% if password_form.new_password1.errors %}border-red-400 bg-red-50{% endif %}">
+                    <button type="button" @click="show2 = !show2" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg x-show="!show2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <svg x-show="show2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    </button>
+                </div>
+                {% for error in password_form.new_password1.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <!-- Konfirmasi Password Baru -->
+            <div>
+                <label for="{{ password_form.new_password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ password_form.new_password2.label }}</label>
+                <div class="relative">
+                    <input :type="show3 ? 'text' : 'password'" name="{{ password_form.new_password2.html_name }}" id="{{ password_form.new_password2.id_for_label }}"
+                           placeholder="{{ password_form.new_password2.field.widget.attrs.placeholder|default:'' }}"
+                           class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                                  {% if password_form.new_password2.errors %}border-red-400 bg-red-50{% endif %}">
+                    <button type="button" @click="show3 = !show3" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg x-show="!show3" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <svg x-show="show3" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    </button>
+                </div>
+                {% for error in password_form.new_password2.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <button type="submit"
+                    class="bg-gold text-maroon-dark px-6 py-2.5 rounded-lg font-semibold hover:bg-gold-light transition btn-hover">
+                Ubah Password
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

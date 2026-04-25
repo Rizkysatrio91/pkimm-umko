@@ -1,0 +1,80 @@
+{% extends "base_public.html" %}
+{% block title %}Semua Berita - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-xl sm:text-3xl font-bold text-maroon-dark">Semua Berita</h1>
+        <a href="{% url 'beranda' %}" class="text-sm text-gray-500 hover:text-maroon transition">
+            &larr; Kembali ke Beranda
+        </a>
+    </div>
+
+    {% if berita_list %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for b in berita_list %}
+        <a href="{% url 'berita:detail' b.slug %}" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition group">
+            {% if b.gambar_utama %}
+            <div class="aspect-video overflow-hidden">
+                <img src="{{ b.gambar_utama.url }}" alt="{{ b.judul }}"
+                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            </div>
+            {% endif %}
+            <div class="p-5">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-maroon/10 text-maroon mb-2">
+                    {{ b.get_kategori_display }}
+                </span>
+                <h3 class="font-semibold text-gray-900 group-hover:text-maroon transition line-clamp-2">{{ b.judul }}</h3>
+                <p class="text-sm text-gray-500 mt-2 line-clamp-2">{{ b.konten_final|striptags|truncatewords:25 }}</p>
+                <div class="flex items-center justify-between mt-4 text-xs text-gray-400">
+                    <span>{{ b.tgl_terbit|date:"d M Y" }}</span>
+                    <span>{{ b.jumlah_views }} views</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="flex justify-center mt-8">
+        <ul class="inline-flex items-center space-x-1">
+            {% if page_obj.has_previous %}
+            <li>
+                <a href="?page={{ page_obj.previous_page_number }}"
+                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    &laquo; Prev
+                </a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li>
+                {% if num == page_obj.number %}
+                <span class="px-3 py-2 text-sm font-medium text-white bg-maroon rounded-lg">{{ num }}</span>
+                {% else %}
+                <a href="?page={{ num }}"
+                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    {{ num }}
+                </a>
+                {% endif %}
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li>
+                <a href="?page={{ page_obj.next_page_number }}"
+                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Next &raquo;
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-12 bg-white rounded-xl border border-gray-200">
+        <p class="text-gray-500">Belum ada berita yang dipublikasikan.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

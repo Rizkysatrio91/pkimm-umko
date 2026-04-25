@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Monitoring Pendaftaran - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-lg sm:text-2xl font-bold text-maroon-dark">Monitoring Pendaftaran DAD</h2>
+
+    <!-- Filters -->
+    <form method="GET" class="flex flex-wrap gap-2">
+        <input type="text" name="q" value="{{ q }}" placeholder="Cari nama/NPM/no. registrasi..."
+               class="flex-1 min-w-[200px] max-w-sm px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm">
+        <select name="tahap"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm">
+            <option value="">Semua Tahap</option>
+            {% for val, label in tahap_choices %}
+            <option value="{{ val }}" {% if tahap_filter == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm">Filter</button>
+        {% if q or tahap_filter %}
+        <a href="{% url 'pendaftaran_admin:admin_list' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">Reset</a>
+        {% endif %}
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="table-responsive">
+            <table class="w-full text-sm">
+                <thead class="bg-maroon text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">No. Registrasi</th>
+                        <th class="px-4 py-3 text-left font-semibold">Nama</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">NPM</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Nama SSO</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Status Mhs</th>
+                        <th class="px-4 py-3 text-center font-semibold hidden md:table-cell">Identik</th>
+                        <th class="px-4 py-3 text-center font-semibold">Status</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden xl:table-cell">Tgl Daftar</th>
+                        <th class="px-4 py-3 text-center font-semibold">Detail</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in pendaftaran_list %}
+                    <tr class="hover:bg-cream/50 transition">
+                        <td class="px-4 py-3 font-mono text-sm">{{ p.no_registrasi }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900">{{ p.id_biodata.nama_lengkap }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell font-mono">{{ p.id_biodata.npm }}</td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-600">{{ p.api_nama_sso|default:"-" }}</td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-600">{{ p.api_status_mahasiswa|default:"-" }}</td>
+                        <td class="px-4 py-3 text-center hidden md:table-cell">
+                            {% if p.is_identic %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Ya</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Tidak</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% with t=p.tahap_display %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if t.color == 'green' %}bg-green-100 text-green-800
+                                {% elif t.color == 'red' %}bg-red-100 text-red-800
+                                {% elif t.color == 'yellow' %}bg-yellow-100 text-yellow-800
+                                {% elif t.color == 'blue' %}bg-blue-100 text-blue-800
+                                {% elif t.color == 'gold' %}bg-yellow-50 text-yellow-900 border border-yellow-300
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ t.label }}
+                            </span>
+                            {% endwith %}
+                        </td>
+                        <td class="px-4 py-3 hidden xl:table-cell text-gray-500">{{ p.tgl_daftar|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'pendaftaran_admin:admin_detail' p.id_pendaftaran %}"
+                               class="text-maroon hover:text-maroon-dark font-medium text-sm transition">Lihat</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">Belum ada pendaftaran.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "components/pagination.html" %}
+</div>
+{% endblock %}

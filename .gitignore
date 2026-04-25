@@ -1,0 +1,128 @@
+# ===========================================
+# PYTHON
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-link
+.installed.cfg
+MANIFEST
+
+# ===========================================
+# VIRTUAL ENVIRONMENT
+# ===========================================
+venv/
+env/
+ENV/
+.venv/
+.env.bak
+
+# ===========================================
+# DJANGO
+# ===========================================
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+*.db
+staticfiles/
+mediafiles/
+media/
+
+# ===========================================
+# ENVIRONMENT & SECRETS (PALING PENTING!)
+# ===========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+service-account*.json
+
+# ===========================================
+# IDE / EDITOR
+# ===========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ===========================================
+# OPERATING SYSTEM
+# ===========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===========================================
+# LOG FILES
+# ===========================================
+logs/
+*.log
+log/
+
+# ===========================================
+# DEPENDENCIES (Node.js jika dipakai)
+# ===========================================
+node_modules/
+yarn.lock
+
+# ===========================================
+# ARTEFAK BUILD / DOKUMEN LOKAL (tidak perlu di-deploy)
+# ===========================================
+*.docx
+*.drawio
+ALL_*.xml
+USECASE_*.xml
+generate_*.py
+build_*.py
+cari_nama.py
+PROGRESS.md
+PANDUAN_*.txt
+BACKUP_*
+
+# ===========================================
+# CLAUDE / AI TOOLS
+# ===========================================
+.claude/
+.aider*
+.cursor/
+
+# ===========================================
+# COVERAGE / TESTING
+# ===========================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/

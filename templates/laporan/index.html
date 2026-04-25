@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Laporan - PK IMM FTIK UMKO{% endblock %}
+{% block page_title %}Laporan & Export{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto" x-data="{ mulai: '', akhir: '' }">
+
+    <!-- Filter Periode -->
+    <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 mb-4">Filter Periode</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Tanggal Mulai</label>
+                <input type="date" x-model="mulai"
+                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Tanggal Akhir</label>
+                <input type="date" x-model="akhir"
+                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon">
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-3">Kosongkan untuk mengambil semua data tanpa filter tanggal.</p>
+    </div>
+
+    <!-- Cards Laporan -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <!-- Rekap Data Kader -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Data Kader</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Daftar semua kader terdaftar beserta biodata lengkap.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:kader_pdf' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    PDF
+                </a>
+                <a :href="'{% url 'laporan:kader_excel' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Rekap Pendaftar DAD -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Pendaftar DAD</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Daftar peserta pendaftar DAD beserta status verifikasi.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:pendaftar_pdf' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    PDF
+                </a>
+                <a :href="'{% url 'laporan:pendaftar_excel' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Rekap Kelulusan DAD -->
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col">
+            <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-1">Rekap Kelulusan DAD</h3>
+            <p class="text-xs text-gray-500 mb-5 flex-1">Ranking peserta DAD beserta nilai akhir dan status kelulusan.</p>
+            <div class="flex gap-2">
+                <a :href="'{% url 'laporan:kelulusan_pdf' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    PDF
+                </a>
+                <a :href="'{% url 'laporan:kelulusan_excel' %}?mulai=' + mulai + '&akhir=' + akhir"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Excel
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Info Box -->
+    <div class="mt-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-xs text-blue-700 leading-relaxed">
+            <strong>PDF</strong> — berisi kop surat resmi PK IMM FTIK UMKO, tabel data, ringkasan, dan bagian tanda tangan Ketua &amp; Sekretaris Umum.<br>
+            <strong>Excel (.xlsx)</strong> — format tabel terstruktur, cocok untuk analisis data lebih lanjut.
+        </p>
+    </div>
+
+</div>
+{% endblock %}

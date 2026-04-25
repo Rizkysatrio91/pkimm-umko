@@ -1,0 +1,333 @@
+<!-- Sidebar Overlay (mobile) -->
+<div x-show="sidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300"
+     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition-opacity ease-linear duration-300"
+     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+     @click="sidebarOpen = false"
+     class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
+
+<!-- Sidebar -->
+<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+       class="fixed inset-y-0 left-0 z-50 w-64 bg-[#2D0810] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col">
+
+    {% load static %}
+    <!-- Logo Bar -->
+    <div class="flex items-center justify-between h-16 px-4 border-b border-white/10 bg-maroon-dark">
+        <div class="flex items-center space-x-2">
+            <img src="{% static 'images/logo_pk_imm_ftik.png' %}" alt="PK IMM FTIK" class="h-9 w-auto object-contain">
+            <span class="text-sm font-bold text-gold">PK IMM FTIK UMKO</span>
+        </div>
+        <button @click="sidebarOpen = false" class="lg:hidden text-white/60 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- User Profile Header -->
+    <div class="px-4 py-4 bg-maroon-dark/60 border-b border-white/10">
+        <div class="flex items-center space-x-3">
+            {% if user_foto_url %}
+            <img src="{{ user_foto_url }}"
+                 alt="{{ user.username }}"
+                 class="w-10 h-10 rounded-full object-cover border-2 border-white/30 flex-shrink-0">
+            {% else %}
+            <div class="w-10 h-10 rounded-full bg-[#5B1525] flex items-center justify-center text-white font-bold text-base flex-shrink-0 border-2 border-white/30">
+                {{ user.username|first|upper }}
+            </div>
+            {% endif %}
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-white truncate">{{ user.username }}</p>
+                <p class="text-xs text-white/50 truncate">{{ user.email|default:"—" }}</p>
+            </div>
+        </div>
+        <div class="mt-2">
+            {% if user.role == 'admin' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gold/20 text-gold border border-gold/30">SUPER ADMIN</span>
+            {% elif user.role == 'panitia' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">PANITIA DAD</span>
+            {% elif user.role == 'penulis' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-500/20 text-green-300 border border-green-400/30">PENULIS</span>
+            {% elif user.role == 'calon_kader' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-400/30">PESERTA DAD</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto sidebar-scroll">
+        {% with current_path=request.path %}
+        <!-- Dashboard — semua role -->
+        <a href="{% url 'accounts:login_redirect' %}"
+           class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if 'dashboard' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/>
+            </svg>
+            Dashboard
+        </a>
+
+        {% if user.role == 'admin' %}
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Admin</p>
+        </div>
+        <a href="{% url 'user_admin:user_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/users' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+            </svg>
+            Manajemen User
+        </a>
+        <a href="{% url 'kader_admin:admin_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/kader' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Data Kader
+        </a>
+        <a href="{% url 'chatbot_admin:dataset_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/chatbot' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            Dataset Chatbot
+        </a>
+        <a href="{% url 'pendaftaran_admin:admin_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/pendaftaran' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Validasi Pendaftaran
+        </a>
+        <a href="{% url 'periode_admin:periode_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/periode' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Periode DAD
+        </a>
+        <a href="{% url 'kelompok_admin:kelompok_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/kelompok' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            Kelompok DAD
+        </a>
+        <a href="{% url 'rundown_admin:rundown_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/rundown' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            Rundown DAD
+        </a>
+        <a href="{% url 'kader_admin:konfigurasi_fakultas' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/kader/konfigurasi' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Pengaturan Fakultas
+        </a>
+        <a href="{% url 'penilaian_admin:penetapan_kelulusan' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/kelulusan' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+            Penetapan Kelulusan
+        </a>
+        <a href="{% url 'laporan:index' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/laporan' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Laporan &amp; Export
+        </a>
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Profil Organisasi</p>
+        </div>
+        <a href="{% url 'profil_admin:sambutan_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/profil/sambutan' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            Kata Sambutan
+        </a>
+        <a href="{% url 'profil_admin:visimisi_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/profil/visi-misi' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Visi &amp; Misi
+        </a>
+        <a href="{% url 'profil_admin:sejarah_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/admin-dashboard/profil/sejarah' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Sejarah
+        </a>
+        {% endif %}
+
+        {% if user.role == 'panitia' %}
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Panitia</p>
+        </div>
+        <a href="{% url 'panitia:interview_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/panitia/interview' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            Seleksi Interview
+        </a>
+        <a href="{% url 'panitia:aktivitas_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/panitia/aktivitas' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+            </svg>
+            Penilaian Kegiatan
+        </a>
+        <a href="{% url 'absensi_panitia:absensi_list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/panitia/absensi' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+            </svg>
+            Absensi QR
+        </a>
+        {% endif %}
+
+        {% if user.role == 'penulis' %}
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Penulis</p>
+        </div>
+        <a href="{% url 'penulis:berita_create' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/penulis/berita' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Tulis Berita
+        </a>
+        {% endif %}
+
+        {% if user.role == 'calon_kader' %}
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Menu Kader</p>
+        </div>
+        <a href="{% url 'kader:biodata' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/kader/biodata' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            Profil Saya
+        </a>
+        <a href="{% url 'pendaftaran:daftar' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/pendaftaran/daftar' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Daftar DAD
+        </a>
+        <a href="{% url 'pendaftaran:status' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/pendaftaran/status' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+            Status Pendaftaran
+        </a>
+        <a href="{% url 'pendaftaran:kelulusan' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/pendaftaran/kelulusan' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+            Status Kelulusan
+        </a>
+        <a href="{% url 'pendaftaran:rundown_public' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/pendaftaran/rundown' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            Jadwal DAD
+        </a>
+        <a href="{% url 'pendaftaran:absensi_scan' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/pendaftaran/absensi' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+            </svg>
+            Scan Absensi
+        </a>
+        <a href="{% url 'kader_chatbot' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/kader/chatbot' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            Tanya AI
+        </a>
+        {% endif %}
+
+        {% if user.role == 'admin' or user.role == 'panitia' or user.role == 'calon_kader' %}
+        <div class="pt-3 pb-1">
+            <p class="px-3 text-xs font-semibold text-white/30 uppercase tracking-wider">Umum</p>
+        </div>
+        <a href="{% url 'penilaian:leaderboard' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/penilaian/leaderboard' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Leaderboard
+        </a>
+        <a href="{% url 'notifikasi:list' %}" class="flex items-center px-3 py-2.5 rounded-lg transition text-sm
+           {% if '/notifikasi' in current_path %}bg-[#5B1525] text-white font-semibold{% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            Notifikasi
+            {% if unread_notif_count %}
+            <span class="ml-auto bg-[#5B1525] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
+                {{ unread_notif_count }}
+            </span>
+            {% endif %}
+        </a>
+        {% endif %}
+        {% endwith %}
+    </nav>
+
+    <!-- Logout Button -->
+    <div class="px-3 py-3 border-t border-white/10">
+        <a href="{% url 'accounts:logout' %}"
+           class="flex items-center w-full px-3 py-2.5 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-[#5B1525] transition">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            Logout
+        </a>
+    </div>
+</aside>

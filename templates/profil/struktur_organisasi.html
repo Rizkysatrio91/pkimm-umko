@@ -1,0 +1,174 @@
+{% extends "base_public.html" %}
+{% load static %}
+{% block title %}Struktur Organisasi - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="relative py-20 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-[#2D0810] via-[#5B1525] to-[#3D0C15]"></div>
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-10 left-10 w-32 h-32 border border-white/20 rounded-full"></div>
+        <div class="absolute bottom-10 right-10 w-48 h-48 border border-white/10 rounded-full"></div>
+        <div class="absolute top-1/2 left-1/3 w-20 h-20 border border-white/15 rounded-full"></div>
+    </div>
+    <div class="relative z-10 text-center px-4 max-w-3xl mx-auto">
+        <div class="inline-flex items-center bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-6 animate-fadeIn">
+            <svg class="w-4 h-4 text-gold mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span class="text-white/90 text-xs font-medium">PROFIL ORGANISASI</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3 animate-slideUp">Struktur Kepengurusan</h1>
+        <p class="text-white/70 text-base animate-slideUp animation-delay-200">PK IMM FTIK Universitas Muhammadiyah Kotabumi</p>
+    </div>
+</section>
+
+<!-- Pimpinan Inti (Top 3) -->
+<section class="py-12 px-4 -mt-8">
+    <div class="max-w-5xl mx-auto">
+        {% if pimpinan_inti %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            {% for p in pimpinan_inti %}
+            <div class="scroll-reveal {% if p.jabatan_struktural == 'ketua_umum' %}md:order-2 md:-mt-6{% elif p.jabatan_struktural == 'sekretaris_umum' %}md:order-1{% else %}md:order-3{% endif %}">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2
+                    {% if p.jabatan_struktural == 'ketua_umum' %}ring-2 ring-gold/50{% endif %}">
+                    {% if p.jabatan_struktural == 'ketua_umum' %}
+                    <div class="h-2 bg-gradient-to-r from-gold via-gold-light to-gold"></div>
+                    {% else %}
+                    <div class="h-1.5 bg-gradient-to-r from-maroon to-maroon-accent"></div>
+                    {% endif %}
+                    <div class="p-6 text-center">
+                        <div class="relative inline-block mb-4">
+                            {% if p.foto_profil %}
+                            <img src="{{ p.foto_profil.url }}" alt="{{ p.nama_lengkap }}"
+                                 class="w-28 h-28 {% if p.jabatan_struktural == 'ketua_umum' %}w-36 h-36{% endif %} rounded-full object-cover mx-auto border-4 {% if p.jabatan_struktural == 'ketua_umum' %}border-gold{% else %}border-maroon/30{% endif %} shadow-lg">
+                            {% else %}
+                            <div class="w-28 h-28 {% if p.jabatan_struktural == 'ketua_umum' %}w-36 h-36{% endif %} rounded-full bg-gradient-to-br from-maroon to-maroon-accent mx-auto flex items-center justify-center border-4 {% if p.jabatan_struktural == 'ketua_umum' %}border-gold{% else %}border-maroon/30{% endif %} shadow-lg">
+                                <span class="text-white font-bold text-2xl {% if p.jabatan_struktural == 'ketua_umum' %}text-3xl{% endif %}">{{ p.nama_lengkap|first|upper }}</span>
+                            </div>
+                            {% endif %}
+                            {% if p.jabatan_struktural == 'ketua_umum' %}
+                            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gold text-white text-xs font-bold px-3 py-0.5 rounded-full shadow">
+                                <svg class="w-3 h-3 inline mr-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                KETUA
+                            </div>
+                            {% endif %}
+                        </div>
+                        <h3 class="font-bold text-gray-900 {% if p.jabatan_struktural == 'ketua_umum' %}text-lg{% else %}text-base{% endif %} mb-1">{{ p.nama_lengkap }}</h3>
+                        <p class="text-maroon font-semibold text-sm mb-1">{{ p.get_jabatan_struktural_display }}</p>
+                        {% if p.periode_jabatan %}
+                        <p class="text-gray-400 text-xs">Periode {{ p.periode_jabatan }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <p class="text-gray-400">Data pimpinan inti belum tersedia.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Connector Line -->
+{% if bidang_list %}
+<div class="flex justify-center">
+    <div class="w-0.5 h-10 bg-gradient-to-b from-gold to-maroon/30 rounded-full"></div>
+</div>
+{% endif %}
+
+<!-- Bidang Section -->
+<section class="py-8 px-4 pb-16">
+    <div class="max-w-5xl mx-auto">
+        {% if bidang_list %}
+        <div class="text-center mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2 scroll-reveal">Ketua & Sekretaris Bidang</h2>
+            <div class="w-16 h-1 bg-gold mx-auto rounded-full"></div>
+        </div>
+
+        <div class="space-y-6">
+            {% for bidang in bidang_list %}
+            <div class="scroll-reveal bg-white rounded-xl border border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+                <div class="bg-gradient-to-r from-maroon to-maroon-accent px-5 py-2.5">
+                    <h3 class="text-white font-bold text-sm">{{ bidang.nama }}</h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                    <!-- Ketua -->
+                    <div class="p-5 flex items-center gap-4">
+                        {% if bidang.ketua %}
+                        {% if bidang.ketua.foto_profil %}
+                        <img src="{{ bidang.ketua.foto_profil.url }}" alt="{{ bidang.ketua.nama_lengkap }}"
+                             class="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0">
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-maroon to-maroon-accent flex items-center justify-center border-2 border-maroon/20 shadow flex-shrink-0">
+                            <span class="text-white font-bold text-lg">{{ bidang.ketua.nama_lengkap|first|upper }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-bold text-gray-900 text-sm">{{ bidang.ketua.nama_lengkap }}</p>
+                            <p class="text-maroon text-xs font-semibold">{{ bidang.ketua.get_jabatan_struktural_display }}</p>
+                            {% if bidang.ketua.periode_jabatan %}
+                            <p class="text-gray-400 text-xs">Periode {{ bidang.ketua.periode_jabatan }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        </div>
+                        <p class="text-gray-400 text-sm italic">Belum ditentukan</p>
+                        {% endif %}
+                    </div>
+                    <!-- Sekretaris -->
+                    <div class="p-5 flex items-center gap-4">
+                        {% if bidang.sekretaris %}
+                        {% if bidang.sekretaris.foto_profil %}
+                        <img src="{{ bidang.sekretaris.foto_profil.url }}" alt="{{ bidang.sekretaris.nama_lengkap }}"
+                             class="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0">
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-maroon-accent to-maroon flex items-center justify-center border-2 border-maroon/20 shadow flex-shrink-0">
+                            <span class="text-white font-bold text-lg">{{ bidang.sekretaris.nama_lengkap|first|upper }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-bold text-gray-900 text-sm">{{ bidang.sekretaris.nama_lengkap }}</p>
+                            <p class="text-maroon text-xs font-semibold">{{ bidang.sekretaris.get_jabatan_struktural_display }}</p>
+                            {% if bidang.sekretaris.periode_jabatan %}
+                            <p class="text-gray-400 text-xs">Periode {{ bidang.sekretaris.periode_jabatan }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        </div>
+                        <p class="text-gray-400 text-sm italic">Belum ditentukan</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => entry.target.classList.add('revealed'), index * 80);
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+});
+</script>
+{% endblock %}

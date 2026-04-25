@@ -1,0 +1,56 @@
+{% extends "base_public.html" %}
+{% block title %}{{ berita.judul }} - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<article class="max-w-3xl mx-auto">
+    <a href="{% url 'beranda' %}" class="inline-flex items-center text-sm text-gray-500 hover:text-maroon transition mb-6">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Kembali ke Beranda
+    </a>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-maroon/10 text-maroon mb-3">
+            {{ berita.get_kategori_display }}
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{{ berita.judul }}</h1>
+        <div class="flex items-center gap-4 text-sm text-gray-500">
+            <span>Oleh <strong class="text-gray-700">{{ berita.id_penulis.username }}</strong></span>
+            <span>{{ berita.tgl_terbit|date:"d M Y, H:i" }}</span>
+            <span>{{ berita.jumlah_views }} views</span>
+        </div>
+    </div>
+
+    <!-- Gambar Utama -->
+    {% if berita.gambar_utama %}
+    <div class="rounded-xl overflow-hidden mb-8">
+        <img src="{{ berita.gambar_utama.url }}" alt="{{ berita.judul }}" class="w-full">
+    </div>
+    {% endif %}
+
+    <!-- Konten -->
+    <div class="berita-content">{{ berita.konten_final|safe }}</div>
+</article>
+
+<style>
+    .berita-content { color: #374151; line-height: 1.8; }
+    .berita-content h1 { font-size: 2rem; font-weight: 700; color: #111827; margin: 1.5rem 0 0.75rem; }
+    .berita-content h2 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 1.25rem 0 0.5rem; }
+    .berita-content h3 { font-size: 1.25rem; font-weight: 600; color: #111827; margin: 1rem 0 0.5rem; }
+    .berita-content p { margin-bottom: 1rem; }
+    .berita-content ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+    .berita-content ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+    .berita-content li { margin-bottom: 0.25rem; }
+    .berita-content a { color: #5B1525; text-decoration: underline; }
+    .berita-content a:hover { color: #3D0C15; }
+    .berita-content blockquote { border-left: 4px solid #D4A843; padding: 0.75rem 1rem; margin: 1rem 0; background: #FDF8F0; font-style: italic; color: #4B5563; }
+    .berita-content img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; }
+    .berita-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .berita-content th, .berita-content td { border: 1px solid #D1D5DB; padding: 0.5rem 0.75rem; text-align: left; }
+    .berita-content th { background: #F3F4F6; font-weight: 600; }
+    .berita-content strong { font-weight: 600; }
+    .berita-content em { font-style: italic; }
+</style>
+{% endblock %}

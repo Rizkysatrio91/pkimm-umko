@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Detail Pendaftaran {{ pendaftaran.no_registrasi }} - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'pendaftaran_admin:admin_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">Detail Pendaftaran</h2>
+    </div>
+
+    <!-- Registration Info -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">No. Registrasi</p>
+                <p class="font-semibold text-gray-900 font-mono">{{ pendaftaran.no_registrasi }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Tanggal Daftar</p>
+                <p class="font-semibold text-gray-900">{{ pendaftaran.tgl_daftar|date:"d M Y, H:i" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Tanggal Verifikasi</p>
+                <p class="font-semibold text-gray-900">{{ pendaftaran.tgl_verifikasi|date:"d M Y, H:i"|default:"-" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Status Verifikasi</p>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    {% if pendaftaran.status_verifikasi == 'lolos_administrasi' %}bg-green-100 text-green-800
+                    {% elif pendaftaran.status_verifikasi == 'ditolak' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ pendaftaran.get_status_verifikasi_display }}
+                </span>
+            </div>
+            <div>
+                <p class="text-gray-500">Data Identik</p>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    {% if pendaftaran.is_identic %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {% if pendaftaran.is_identic %}Ya — Cocok{% else %}Tidak — Berbeda{% endif %}
+                </span>
+            </div>
+            <div>
+                <p class="text-gray-500">Status Kelulusan</p>
+                <p class="font-semibold text-gray-900">{{ pendaftaran.get_status_kelulusan_display }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison: Biodata Sistem vs SSO UMKO -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Data Biodata Sistem</h3>
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-gray-500">Nama Lengkap</dt>
+                    <dd class="font-medium text-gray-900">{{ pendaftaran.id_biodata.nama_lengkap }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">NPM</dt>
+                    <dd class="font-medium text-gray-900 font-mono">{{ pendaftaran.id_biodata.npm }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Program Studi</dt>
+                    <dd class="font-medium text-gray-900">{{ pendaftaran.id_biodata.program_studi }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Data SSO UMKO</h3>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    API Verified
+                </span>
+            </div>
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-gray-500">Nama (SSO)</dt>
+                    <dd class="font-medium {% if pendaftaran.api_nama_sso and pendaftaran.api_nama_sso|lower == pendaftaran.id_biodata.nama_lengkap|lower %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ pendaftaran.api_nama_sso|default:"Belum diverifikasi" }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Status Mahasiswa</dt>
+                    <dd class="font-medium text-gray-900">{{ pendaftaran.api_status_mahasiswa|default:"-" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Program Studi (SSO)</dt>
+                    <dd class="font-medium text-gray-900">{{ pendaftaran.api_program_studi|default:"-" }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Hasil Verifikasi & Retry -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Hasil Verifikasi Data Mahasiswa</h3>
+        <div class="flex items-center justify-between p-4 rounded-lg {% if pendaftaran.is_identic %}bg-green-50{% else %}bg-red-50{% endif %}">
+            <span class="text-sm font-medium text-gray-700">Status Pencocokan Nama</span>
+            <span class="text-sm font-semibold {% if pendaftaran.is_identic %}text-green-700{% else %}text-red-700{% endif %}">
+                {% if pendaftaran.is_identic %}Cocok — Terverifikasi SSO UMKO{% else %}Tidak Cocok — Data Berbeda{% endif %}
+            </span>
+        </div>
+
+        {% if pendaftaran.status_verifikasi == 'menunggu' %}
+        <form method="post" action="{% url 'pendaftaran_admin:admin_retry_verifikasi' pendaftaran.id_pendaftaran %}" class="mt-4">
+            {% csrf_token %}
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-maroon text-white rounded-lg text-sm font-medium hover:bg-maroon-dark transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Retry Verifikasi SSO
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

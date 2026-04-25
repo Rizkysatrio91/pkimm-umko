@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}QR Absensi — {{ qr.id_rundown.materi }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (min-width: 1024px) {
+        .qr-projector { min-height: 80vh; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qr-projector flex flex-col items-center justify-center py-8" x-data="{ refreshing: false }">
+    <!-- Materi Info -->
+    <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-maroon">{{ qr.id_rundown.materi }}</h1>
+        <p class="text-lg text-gray-600 mt-1">Kelas {{ qr.id_kelompok.nama_kelompok }}</p>
+        <p class="text-sm text-gray-400 mt-1">
+            {{ qr.id_rundown.hari_ke }} | {{ qr.id_rundown.jam_mulai|time:"H:i" }} – {{ qr.id_rundown.jam_selesai|time:"H:i" }}
+        </p>
+    </div>
+
+    <!-- QR Code Image -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg border-4 border-maroon">
+        <img src="{% url 'absensi_panitia:qr_download' qr.pk %}"
+             alt="QR Code Absensi"
+             class="w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96">
+    </div>
+
+    <!-- Status -->
+    <div class="mt-6 text-center">
+        {% if qr.is_active %}
+        <span class="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-lg font-bold">
+            QR AKTIF — Scan Sekarang!
+        </span>
+        {% else %}
+        <span class="inline-flex items-center px-4 py-2 bg-red-100 text-red-800 rounded-full text-lg font-bold">
+            QR NONAKTIF
+        </span>
+        {% endif %}
+
+        <p class="text-gray-500 mt-3 text-sm">
+            Kehadiran: <span class="font-bold text-maroon">{{ hadir_count }}</span> / {{ total_anggota }} peserta
+        </p>
+    </div>
+
+    <!-- Instruksi -->
+    <div class="mt-6 bg-cream rounded-xl p-4 max-w-md text-center">
+        <p class="text-sm text-gray-600">
+            Arahkan kamera HP ke QR Code ini melalui menu <strong>Scan Absensi</strong> di dashboard peserta.
+        </p>
+    </div>
+
+    <!-- Back button -->
+    <a href="{% url 'absensi_panitia:absensi_list' %}"
+       class="mt-6 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+        Kembali
+    </a>
+</div>
+{% endblock %}

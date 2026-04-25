@@ -1,0 +1,108 @@
+<!-- Top Navbar -->
+<header class="bg-maroon shadow-sm sticky top-0 z-30">
+    <div class="flex items-center justify-between h-14 px-4 sm:px-6">
+        <!-- Mobile menu button -->
+        <button @click="sidebarOpen = true" class="lg:hidden text-white/70 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+
+        <!-- Page title (tampil di mobile & desktop) -->
+        <h1 class="text-sm sm:text-base font-bold lg:font-semibold text-white truncate">
+            {% block page_title %}System{% endblock %}
+        </h1>
+
+        <div class="flex items-center space-x-3">
+            {% if user_role != 'penulis' %}
+            <!-- Notification Bell + Dropdown -->
+            <div x-data="{ notifOpen: false }" class="relative">
+                <button @click="notifOpen = !notifOpen" class="relative text-white/70 hover:text-white transition p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    {% if unread_notif_count %}
+                    <span class="absolute -top-0.5 -right-0.5 bg-[#5B1525] text-white text-xs w-4 h-4 flex items-center justify-center rounded-full font-bold leading-none animate-pulse-soft">
+                        {{ unread_notif_count }}
+                    </span>
+                    {% endif %}
+                </button>
+
+                <!-- Notification Dropdown -->
+                <div x-show="notifOpen" @click.away="notifOpen = false"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <span class="font-semibold text-gray-900 text-sm">Notifikasi</span>
+                        {% if unread_notif_count %}
+                        <span class="bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {{ unread_notif_count }} baru
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="max-h-64 overflow-y-auto">
+                        {% if recent_notifikasi %}
+                        {% for notif in recent_notifikasi %}
+                        <div class="px-4 py-3 hover:bg-cream transition border-b border-gray-50 last:border-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ notif.judul }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5 truncate">{{ notif.pesan }}</p>
+                            <span class="text-xs text-gray-400">{{ notif.created_at|timesince }} lalu</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="px-4 py-6 text-center text-sm text-gray-400">
+                            Tidak ada notifikasi baru
+                        </div>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'notifikasi:list' %}"
+                       class="block px-4 py-3 text-center text-sm font-medium text-maroon hover:bg-cream transition border-t border-gray-100 rounded-b-xl">
+                        Lihat Semua
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- User Dropdown -->
+            <div x-data="{ open: false }" class="relative">
+                <button @click="open = !open" class="flex items-center space-x-2 text-white/80 hover:text-white transition">
+                    {% if user_foto_url %}
+                    <img src="{{ user_foto_url }}"
+                         alt="{{ user.username }}"
+                         class="w-8 h-8 rounded-full object-cover border-2 border-white/20">
+                    {% else %}
+                    <div class="w-8 h-8 rounded-full bg-[#5B1525] flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
+                        {{ user.username|first|upper }}
+                    </div>
+                    {% endif %}
+                    <span class="hidden sm:block text-sm font-medium">{{ user.username }}</span>
+                    <svg class="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div x-show="open" @click.away="open = false"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                    <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-cream transition">
+                        Profil Saya
+                    </a>
+                    <hr class="my-1 border-gray-100">
+                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>

@@ -1,0 +1,45 @@
+<!-- Reusable Pagination -->
+{% if page_obj.has_other_pages %}
+<nav class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-6" aria-label="Pagination">
+    <div>
+        <p class="text-xs sm:text-sm text-gray-700">
+            Menampilkan <span class="font-medium">{{ page_obj.start_index }}</span>
+            - <span class="font-medium">{{ page_obj.end_index }}</span>
+            dari <span class="font-medium">{{ page_obj.paginator.count }}</span> data
+        </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-1">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-cream transition">
+            &laquo; Prev
+        </a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="px-3 py-2 text-sm font-medium text-white bg-maroon rounded-lg">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}"
+               class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-cream transition">
+                {{ num }}
+            </a>
+            {% elif num == 1 or num == page_obj.paginator.num_pages %}
+            <a href="?page={{ num }}"
+               class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-cream transition">
+                {{ num }}
+            </a>
+            {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+            <span class="px-2 py-2 text-gray-500">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-cream transition">
+            Next &raquo;
+        </a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

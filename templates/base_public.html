@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PK IMM FTIK UMKO{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; color: #000000; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['"Times New Roman"', 'Times', 'serif'],
+                    },
+                    colors: {
+                        'maroon':        '#5B1525',
+                        'maroon-dark':   '#3D0C15',
+                        'maroon-deep':   '#2D0810',
+                        'maroon-accent': '#7A2E3E',
+                        'maroon-light':  '#EDD8DC',
+                        gold:   { DEFAULT: '#D4A843', light: '#E8C96A' },
+                        cream:  { DEFAULT: '#FDF8F0', dark: '#F5EDE0' },
+                        dark:   { DEFAULT: '#1A1A2E' },
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="h-full bg-cream" x-data="{ mobileMenu: false, scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 50)">
+
+    <!-- Public Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 navbar-scroll"
+         :class="scrolled ? 'bg-[#2D0810] shadow-lg' : 'bg-[#2D0810]/80 backdrop-blur-sm'">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center space-x-2">
+                    <img src="{% static 'images/logo_pk_imm_ftik.png' %}" alt="PK IMM FTIK" class="h-9 w-auto object-contain">
+                    <span class="text-base font-bold text-white">PK IMM FTIK UMKO</span>
+                </a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="/" class="text-white/80 hover:text-gold transition text-sm font-medium">Beranda</a>
+                    <!-- Profil Dropdown -->
+                    <div class="relative" x-data="{ profilOpen: false }" @mouseenter="profilOpen = true" @mouseleave="profilOpen = false">
+                        <button @click="profilOpen = !profilOpen" class="text-white/80 hover:text-gold transition text-sm font-medium flex items-center gap-1">
+                            Profil
+                            <svg class="w-3.5 h-3.5 transition-transform" :class="profilOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="profilOpen" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                             class="absolute top-full left-0 mt-1 w-52 bg-[#2D0810] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                            <a href="{% url 'profil:struktur' %}" class="block px-4 py-2.5 text-white/80 hover:text-gold hover:bg-white/5 transition text-sm">Struktur Organisasi</a>
+                            <a href="{% url 'profil:visi_misi' %}" class="block px-4 py-2.5 text-white/80 hover:text-gold hover:bg-white/5 transition text-sm">Visi & Misi</a>
+                            <a href="{% url 'profil:sejarah' %}" class="block px-4 py-2.5 text-white/80 hover:text-gold hover:bg-white/5 transition text-sm">Sejarah</a>
+                        </div>
+                    </div>
+                    <a href="/chatbot/" class="text-white/80 hover:text-gold transition text-sm font-medium">Chatbot</a>
+                    <a href="/berita/" class="text-white/80 hover:text-gold transition text-sm font-medium">Berita</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'accounts:login_redirect' %}" class="bg-gold text-maroon-dark px-4 py-1.5 rounded-full font-semibold text-sm hover:bg-gold-light transition">Dashboard</a>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="bg-white/10 border border-white/30 text-white px-4 py-1.5 rounded-full font-semibold text-sm hover:bg-white/20 transition">Login</a>
+                    {% endif %}
+                </div>
+                <button @click="mobileMenu = !mobileMenu" class="md:hidden text-white p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!mobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="mobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div x-show="mobileMenu" x-transition class="md:hidden bg-maroon-dark border-t border-white/10">
+            <div class="px-4 py-3 space-y-1">
+                <a href="/" class="block text-white/80 hover:text-gold py-2 text-sm">Beranda</a>
+                <!-- Profil Sub-menu Mobile -->
+                <div x-data="{ profilMobile: false }">
+                    <button @click="profilMobile = !profilMobile" class="flex items-center justify-between w-full text-white/80 hover:text-gold py-2 text-sm">
+                        Profil
+                        <svg class="w-3.5 h-3.5 transition-transform" :class="profilMobile ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="profilMobile" x-transition class="pl-4 space-y-1">
+                        <a href="{% url 'profil:struktur' %}" class="block text-white/60 hover:text-gold py-1.5 text-sm">Struktur Organisasi</a>
+                        <a href="{% url 'profil:visi_misi' %}" class="block text-white/60 hover:text-gold py-1.5 text-sm">Visi & Misi</a>
+                        <a href="{% url 'profil:sejarah' %}" class="block text-white/60 hover:text-gold py-1.5 text-sm">Sejarah</a>
+                    </div>
+                </div>
+                <a href="/chatbot/" class="block text-white/80 hover:text-gold py-2 text-sm">Chatbot</a>
+                <a href="/berita/" class="block text-white/80 hover:text-gold py-2 text-sm">Berita</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'accounts:login_redirect' %}" class="block bg-gold text-maroon-dark px-4 py-2 rounded-full font-semibold text-center text-sm mt-2">Dashboard</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="block bg-white/10 border border-white/30 text-white px-4 py-2 rounded-full font-semibold text-center text-sm mt-2">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    {% block full_content %}
+    <main class="{% block main_class %}pt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% endblock %}">
+        {% include "components/alert.html" %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-maroon text-white py-6 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+            <p class="text-xs text-white/50">Syarat &amp; Ketentuan &nbsp;|&nbsp; Kebijakan Privasi</p>
+            <p class="text-xs text-white/50">&copy; 2026 PK IMM FTIK UMKO</p>
+        </div>
+    </footer>
+    {% endblock %}
+
+    <script src="/static/js/main.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

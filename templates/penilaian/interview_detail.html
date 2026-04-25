@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Detail Interview - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'panitia:interview_list' %}?tab=sudah" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">Detail Nilai Interview</h2>
+    </div>
+
+    <!-- Peserta -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Nama</p>
+                <p class="font-semibold text-gray-900">{{ interview.id_pendaftaran.id_biodata.nama_lengkap }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">NPM</p>
+                <p class="font-semibold text-gray-900 font-mono">{{ interview.id_pendaftaran.id_biodata.npm }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Dinilai oleh</p>
+                <p class="font-semibold text-gray-900">{{ interview.id_panitia.username }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Tanggal</p>
+                <p class="font-semibold text-gray-900">{{ interview.tgl_penilaian|date:"d M Y, H:i" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scores per kategori -->
+    {% for kat in kategori_rows %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-maroon-dark">{{ forloop.counter }}. {{ kat.nama }}</h3>
+            <div class="text-right">
+                <p class="text-xs text-gray-500">Rata-rata Kategori</p>
+                <p class="text-lg font-bold text-maroon">{{ kat.rata_rata|floatformat:2 }}</p>
+            </div>
+        </div>
+        <div class="space-y-3">
+            {% for item in kat.items %}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm text-gray-700">{{ forloop.parentloop.counter }}.{{ forloop.counter }} {{ item.label }}</span>
+                    <span class="font-semibold text-gray-900">{{ item.nilai|floatformat:2 }}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-maroon h-2 rounded-full" style="width: {{ item.nilai }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Hasil Akhir -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Nilai Interview Final (0 - 100)</p>
+                <p class="text-3xl font-bold text-maroon-dark">{{ interview.rata_rata|floatformat:2 }}</p>
+                <p class="text-xs text-gray-400 mt-1">Rata-rata 15 sub-skor</p>
+            </div>
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium
+                {% if interview.status_interview == 'lulus_interview' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {{ interview.get_status_interview_display }}
+            </span>
+        </div>
+
+        {% if interview.catatan %}
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">Catatan:</p>
+            <p class="text-sm text-gray-700">{{ interview.catatan }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

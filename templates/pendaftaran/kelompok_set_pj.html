@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Set PJ Kelas {{ kelompok.nama_kelompok }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-maroon px-6 py-4">
+            <h1 class="text-xl font-bold text-white">Set PJ — Kelas {{ kelompok.nama_kelompok }}</h1>
+            <p class="text-sm text-white/70 mt-1">{{ kelompok.id_periode.nama_periode }}</p>
+        </div>
+        <form method="post" class="p-6 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">{{ form.id_pj.label }}</label>
+                {{ form.id_pj }}
+                {% if form.id_pj.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.id_pj.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="px-5 py-2.5 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
+                    Simpan
+                </button>
+                <a href="{% url 'kelompok_admin:kelompok_list' %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                    Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

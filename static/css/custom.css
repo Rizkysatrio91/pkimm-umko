@@ -1,0 +1,397 @@
+/* ══════════════════════════════════════════════
+   CSS Custom Properties (Color Variables)
+   ══════════════════════════════════════════════ */
+:root {
+    --maroon-primary: #5B1525;
+    --maroon-dark:    #3D0C15;
+    --maroon-deep:    #2D0810;
+    --maroon-accent:  #7A2E3E;
+    --maroon-light:   #EDD8DC;
+    --gold:           #D4A843;
+    --cream:          #FDF8F0;
+}
+
+/* ══════════════════════════════════════════════
+   Sidebar scrollbar
+   ══════════════════════════════════════════════ */
+.sidebar-scroll::-webkit-scrollbar {
+    width: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ══════════════════════════════════════════════
+   Smooth scroll
+   ══════════════════════════════════════════════ */
+* {
+    scroll-behavior: smooth;
+}
+
+/* ══════════════════════════════════════════════
+   Focus ring reset
+   ══════════════════════════════════════════════ */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}
+
+/* ══════════════════════════════════════════════
+   Table utilities
+   ══════════════════════════════════════════════ */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-header-maroon thead tr th {
+    background-color: var(--maroon-primary);
+    color: white;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.table-zebra tbody tr:nth-child(even) {
+    background-color: #FDF8F0;
+}
+
+/* ══════════════════════════════════════════════
+   Line clamp utilities
+   ══════════════════════════════════════════════ */
+.line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+/* ══════════════════════════════════════════════
+   Badge pill
+   ══════════════════════════════════════════════ */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════
+   Dark input style (auth pages)
+   ══════════════════════════════════════════════ */
+.input-dark {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.input-dark::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.input-dark:focus {
+    border-color: var(--maroon-primary);
+    box-shadow: 0 0 0 2px rgba(91, 21, 37, 0.4);
+}
+
+/* ══════════════════════════════════════════════
+   Safe area (mobile notch)
+   ══════════════════════════════════════════════ */
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ══════════════════════════════════════════════
+   Print styles
+   ══════════════════════════════════════════════ */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   ANIMASI MODERN SELURUH SISTEM
+   CSS Only — Ringan, Profesional
+   ══════════════════════════════════════════════ */
+
+/* === Hero Background Responsive === */
+.hero-bg-img {
+    object-fit: cover;
+    object-position: center center;
+    min-height: 100vh;
+}
+@media (min-width: 641px) {
+    .hero-bg-img { min-height: 600px; }
+}
+
+/* === KEYFRAMES === */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-25px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-25px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(25px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+@keyframes pulse-soft {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.08); opacity: 0.9; }
+}
+@keyframes typing-dot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+}
+@keyframes border-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(91, 21, 37, 0.2); }
+    50% { box-shadow: 0 0 15px rgba(91, 21, 37, 0.4); }
+}
+@keyframes check-appear {
+    from { opacity: 0; transform: scale(0) rotate(-45deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* === ANIMATION CLASSES === */
+.animate-fadeIn      { animation: fadeIn 0.6s ease-out forwards; }
+.animate-fadeInUp    { animation: fadeInUp 0.6s ease-out forwards; }
+.animate-fadeInDown  { animation: fadeInDown 0.6s ease-out forwards; }
+.animate-fadeInLeft  { animation: fadeInLeft 0.6s ease-out forwards; }
+.animate-fadeInRight { animation: fadeInRight 0.6s ease-out forwards; }
+.animate-scaleIn     { animation: scaleIn 0.5s ease-out forwards; }
+.animate-slideUp     { animation: slideUp 0.7s ease-out forwards; }
+.animate-float       { animation: float 3s ease-in-out infinite; }
+.animate-pulse-soft  { animation: pulse-soft 2s ease-in-out infinite; }
+.animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
+.animate-check       { animation: check-appear 0.4s ease-out forwards; }
+
+/* === ANIMATION DELAYS === */
+.delay-100, .animation-delay-200,
+.delay-200, .delay-300, .delay-400,
+.delay-500, .delay-600, .delay-700,
+.delay-800, .animation-delay-400,
+.animation-delay-600, .animation-delay-800 {
+    opacity: 0;
+}
+.delay-100  { animation-delay: 0.1s; }
+.delay-200, .animation-delay-200 { animation-delay: 0.2s; }
+.delay-300  { animation-delay: 0.3s; }
+.delay-400, .animation-delay-400 { animation-delay: 0.4s; }
+.delay-500  { animation-delay: 0.5s; }
+.delay-600, .animation-delay-600 { animation-delay: 0.6s; }
+.delay-700  { animation-delay: 0.7s; }
+.delay-800, .animation-delay-800 { animation-delay: 0.8s; }
+
+/* === SCROLL REVEAL === */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.scroll-reveal.revealed { opacity: 1; transform: translateY(0); }
+
+.scroll-reveal-left {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.scroll-reveal-left.revealed { opacity: 1; transform: translateX(0); }
+
+.scroll-reveal-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.scroll-reveal-right.revealed { opacity: 1; transform: translateX(0); }
+
+.scroll-reveal-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.scroll-reveal-scale.revealed { opacity: 1; transform: scale(1); }
+
+/* === HOVER EFFECTS === */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.btn-hover {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.btn-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(91, 21, 37, 0.35);
+}
+.btn-hover::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+.btn-hover:active::after { width: 300px; height: 300px; }
+
+.icon-hover {
+    transition: transform 0.3s ease;
+}
+.icon-hover:hover { transform: rotate(5deg) scale(1.1); }
+
+.table-row-hover { transition: background-color 0.2s ease; }
+.table-row-hover:hover { background-color: rgba(91, 21, 37, 0.05); }
+
+.img-hover { overflow: hidden; }
+.img-hover img { transition: transform 0.5s ease; }
+.img-hover:hover img { transform: scale(1.05); }
+
+.link-hover { position: relative; text-decoration: none; }
+.link-hover::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0;
+    width: 0; height: 2px;
+    background: #5B1525;
+    transition: width 0.3s ease;
+}
+.link-hover:hover::after { width: 100%; }
+
+/* === SIDEBAR ANIMATION === */
+.sidebar-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-left-color: #D4A843;
+    padding-left: 20px;
+}
+.sidebar-item.active {
+    background: rgba(255, 255, 255, 0.12);
+    border-left-color: #D4A843;
+}
+
+/* === CHATBOT === */
+.typing-dot:nth-child(1) { animation: typing-dot 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation: typing-dot 1.4s ease-in-out 0.2s infinite; }
+.typing-dot:nth-child(3) { animation: typing-dot 1.4s ease-in-out 0.4s infinite; }
+.chat-bubble-enter { animation: fadeInUp 0.3s ease-out forwards; }
+
+/* === FORM === */
+.input-focus { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+.input-focus:focus {
+    border-color: #5B1525;
+    box-shadow: 0 0 0 3px rgba(91, 21, 37, 0.15);
+}
+
+/* === BADGE / MODAL / NOTIFICATION === */
+.badge-new    { animation: scaleIn 0.3s ease-out forwards; }
+.notif-enter  { animation: fadeInRight 0.4s ease-out forwards; }
+.notif-badge  { animation: pulse-soft 2s ease-in-out infinite; }
+.dropdown-enter       { animation: fadeInDown 0.2s ease-out; }
+.modal-overlay-enter  { animation: fadeIn 0.2s ease-out; }
+.modal-content-enter  { animation: scaleIn 0.3s ease-out; }
+.page-enter           { animation: fadeIn 0.4s ease-out; }
+
+/* === TIMELINE === */
+.timeline-step { transition: all 0.3s ease; }
+.timeline-step:hover { transform: scale(1.05); }
+.timeline-line { transition: background-color 0.5s ease; }
+
+/* === COUNTER === */
+.counter-animate { animation: fadeInUp 0.5s ease-out forwards; }
+
+/* === LOADING SKELETON === */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+/* === NAVBAR SCROLL === */
+.navbar-scroll {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+/* === PRINT: hapus semua animasi === */
+@media print {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* === REDUCED MOTION: hormati preferensi user === */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

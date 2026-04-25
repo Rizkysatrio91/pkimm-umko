@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Asisten Pendaftaran - PK IMM FTIK UMKO{% endblock %}
+{% block page_title %}Asisten Pendaftaran{% endblock %}
+
+{% block content %}
+{{ chatbot_config|json_script:"chatbot-config" }}
+
+<div class="max-w-2xl mx-auto" x-data="chatbot()">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col" style="height: 72vh;">
+
+        <!-- Header -->
+        <div class="bg-maroon text-white px-5 py-3.5 flex items-center gap-3 flex-shrink-0">
+            <img src="{% static 'images/logo_AI.png' %}" alt="AI Assistant" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+            <div class="flex-1">
+                <p class="font-semibold text-sm">Asisten Pendaftaran</p>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                    <span class="text-xs text-white/60">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Topics (shown above chat before messages) -->
+        <div class="bg-maroon/5 border-b border-gray-100 px-4 py-3 flex flex-wrap gap-2 flex-shrink-0"
+             x-show="messages.length === 0">
+            <template x-for="topic in quickTopics" :key="topic">
+                <button @click="sendMessage(topic)" type="button"
+                        class="px-3 py-1.5 bg-maroon/10 text-maroon text-xs font-medium rounded-full hover:bg-maroon/20 transition"
+                        x-text="topic"></button>
+            </template>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-cream" x-ref="chatBox">
+            <!-- Welcome message -->
+            <div class="flex items-end gap-2">
+                <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+                <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                    <p class="text-sm text-gray-700">Assalamualaikum wr. wb, Halo!! {{ user.username }}, ada yang bisa saya bantu? 👋</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Messages -->
+            <template x-for="(msg, i) in messages" :key="i">
+                <div>
+                    <template x-if="msg.role === 'user'">
+                        <div class="flex items-end gap-2 justify-end">
+                            <div class="bg-[#5B1525] text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                                <p class="text-sm" x-text="msg.content"></p>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="msg.role === 'bot'">
+                        <div class="flex items-end gap-2">
+                            <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+                            <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                                <p class="text-sm text-gray-700 whitespace-pre-line" x-text="msg.content"></p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Typing indicator -->
+            <div x-show="loading" class="flex items-end gap-2">
+                <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+                <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                    <div class="flex gap-1">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="border-t border-gray-100 bg-white p-3 flex-shrink-0">
+            <form @submit.prevent="sendMessage(inputText)" class="flex items-center gap-2">
+                <input type="text" x-model="inputText"
+                       placeholder="Tanya seputar pendaftaran DAD..."
+                       :disabled="loading"
+                       class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition text-sm outline-none">
+                <button type="submit" :disabled="loading || !inputText.trim()"
+                        class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function chatbot() {
+    const config = JSON.parse(document.getElementById('chatbot-config').textContent);
+    return {
+        jenis: config.jenis,
+        quickTopics: config.quick_topics,
+        messages: [],
+        inputText: '',
+        loading: false,
+        sesiId: crypto.randomUUID(),
+        apiUrl: config.api_url,
+
+        scrollToBottom() {
+            this.$nextTick(() => {
+                const box = this.$refs.chatBox;
+                if (box) box.scrollTop = box.scrollHeight;
+            });
+        },
+
+        async sendMessage(text) {
+            if (!text || !text.trim()) return;
+            const pesan = text.trim();
+            this.inputText = '';
+            this.messages.push({ role: 'user', content: pesan });
+            this.scrollToBottom();
+            this.loading = true;
+
+            try {
+                const resp = await fetch(this.apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pesan: pesan,
+                        sesi_id: this.sesiId,
+                        jenis: this.jenis
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.messages.push({ role: 'bot', content: data.respon });
+                } else {
+                    this.messages.push({ role: 'bot', content: data.error || 'Terjadi kesalahan.' });
+                }
+            } catch (err) {
+                this.messages.push({ role: 'bot', content: 'Gagal terhubung ke server. Coba lagi nanti.' });
+            } finally {
+                this.loading = false;
+                this.scrollToBottom();
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

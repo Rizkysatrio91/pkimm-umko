@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Penulis - PK IMM FTIK UMKO{% endblock %}
+{% block page_title %}Dashboard Penulis{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+    <!-- Welcome Card -->
+    <div class="bg-maroon rounded-2xl p-5 text-white relative overflow-hidden animate-fadeInDown">
+        <div class="absolute inset-0 opacity-10"
+             style="background-image: radial-gradient(circle at 80% -10%, #fff 0%, transparent 50%)"></div>
+        <div class="relative flex items-center justify-between">
+            <div>
+                <p class="text-white/60 text-sm">Selamat Datang,</p>
+                <p class="text-2xl font-bold text-white mt-0.5">{{ user.username }}</p>
+                <div class="mt-2 inline-flex items-center gap-1.5 bg-green-500/20 border border-green-400/30 rounded-full px-3 py-1">
+                    <span class="text-green-300 text-xs font-medium">Penulis</span>
+                </div>
+            </div>
+            {% if user_foto_url %}
+            <img src="{{ user_foto_url }}"
+                 alt="{{ user.username }}"
+                 class="w-14 h-14 rounded-full object-cover border-2 border-white/30 shadow-lg flex-shrink-0">
+            {% else %}
+            <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 border-2 border-white/30">
+                {{ user.username|first|upper }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm card-hover animate-slideUp delay-200">
+            <p class="text-xs text-gray-500">Total Berita</p>
+            <p class="text-3xl font-black text-maroon mt-1 counter-animate">{{ total_berita }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm card-hover animate-slideUp delay-400">
+            <p class="text-xs text-gray-500">Total Views</p>
+            <p class="text-3xl font-black text-blue-600 mt-1 counter-animate">{{ total_views }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm card-hover animate-slideUp delay-600">
+            <p class="text-xs text-gray-500">Published</p>
+            <p class="text-3xl font-black text-green-600 mt-1 counter-animate">{{ published_count }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm card-hover animate-slideUp delay-800">
+            <p class="text-xs text-gray-500">Draft</p>
+            <p class="text-3xl font-black text-yellow-600 mt-1 counter-animate">{{ draft_count }}</p>
+        </div>
+    </div>
+
+    <!-- Berita Table -->
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-900">Berita Saya</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="w-full text-sm">
+                <thead class="bg-maroon text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider">Judul</th>
+                        <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider hidden md:table-cell">Kategori</th>
+                        <th class="px-4 py-3 text-center font-semibold text-xs uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-center font-semibold text-xs uppercase tracking-wider hidden sm:table-cell">Views</th>
+                        <th class="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider hidden lg:table-cell">Tanggal</th>
+                        <th class="px-4 py-3 text-center font-semibold text-xs uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for b in berita_list %}
+                    <tr class="{% cycle 'bg-white' 'bg-cream/40' %} hover:bg-cream transition">
+                        <td class="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{{ b.judul }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-maroon/10 text-maroon">
+                                {{ b.get_kategori_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if b.status == 'published' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Published</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center hidden sm:table-cell text-gray-500">{{ b.jumlah_views }}</td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-500">{{ b.tgl_dibuat|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-3">
+                                <a href="{% url 'penulis:berita_update' b.id_berita %}"
+                                   class="text-maroon hover:text-maroon-dark font-medium text-sm transition">Edit</a>
+                                <form method="post" action="{% url 'penulis:berita_delete' b.id_berita %}"
+                                      onsubmit="return confirm('Yakin ingin menghapus berita \'{{ b.judul|escapejs }}\'?')"
+                                      class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-sm transition">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">Belum ada berita. Mulai menulis!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}Tambah{% endif %} Visi & Misi - PK IMM FTIK UMKO{% endblock %}
+
+{% block extra_css %}
+{{ form.media.css }}
+<style>
+    .ck-editor__editable { min-height: 200px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'profil_admin:visimisi_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">{% if is_edit %}Edit{% else %}Tambah{% endif %} Visi & Misi</h2>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+            <!-- Visi (CKEditor) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Visi</label>
+                {{ form.visi }}
+                {% for error in form.visi.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Misi (CKEditor) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Misi</label>
+                {{ form.misi }}
+                <p class="mt-1 text-xs text-gray-400">Gunakan daftar bernomor (numbered list) pada toolbar editor untuk setiap poin misi.</p>
+                {% for error in form.misi.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Is Active -->
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}
+                       class="w-4 h-4 text-maroon border-gray-300 rounded focus:ring-maroon">
+                <label for="id_is_active" class="text-sm font-medium text-gray-700">Aktif</label>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'profil_admin:visimisi_list' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm">Batal</a>
+            <button type="submit" class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                {% if is_edit %}Simpan Perubahan{% else %}Tambah Visi & Misi{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.media.js }}
+{% endblock %}

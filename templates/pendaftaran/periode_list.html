@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Manajemen Periode DAD - PK IMM FTIK UMKO{% endblock %}
+
+{% block page_title %}Manajemen Periode DAD{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 class="text-lg sm:text-2xl font-bold text-maroon-dark">Periode Kegiatan DAD</h2>
+        <a href="{% url 'periode_admin:periode_create' %}"
+           class="bg-maroon text-white px-4 py-2 rounded-lg font-semibold hover:bg-maroon-dark transition inline-flex items-center gap-2 whitespace-nowrap self-start sm:self-auto text-sm sm:text-base">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Tambah Periode
+        </a>
+    </div>
+
+    {% if periode_list %}
+    <div class="space-y-6">
+        {% for p in periode_list %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Header -->
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900">{{ p.nama_periode }}</h3>
+                    <!-- Active badge -->
+                    {% if p.is_active %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-maroon/10 text-maroon">
+                        Aktif
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                        Nonaktif
+                    </span>
+                    {% endif %}
+                    <!-- Tahap badge -->
+                    {% with info=p.info_tahap %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        {% if info.warna == 'green' %}bg-green-100 text-green-800
+                        {% elif info.warna == 'blue' %}bg-blue-100 text-blue-800
+                        {% elif info.warna == 'purple' %}bg-purple-100 text-purple-800
+                        {% elif info.warna == 'gold' %}bg-yellow-100 text-yellow-800
+                        {% elif info.warna == 'yellow' %}bg-yellow-50 text-yellow-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ info.label }}
+                    </span>
+                    {% endwith %}
+                </div>
+                <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+                    <form method="POST" action="{% url 'periode_admin:periode_toggle' p.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs sm:text-sm font-medium px-2.5 sm:px-3 py-1 rounded-lg transition whitespace-nowrap
+                            {% if p.is_active %}text-red-600 hover:bg-red-50{% else %}text-maroon hover:bg-maroon/10{% endif %}">
+                            {% if p.is_active %}Nonaktifkan{% else %}Aktifkan{% endif %}
+                        </button>
+                    </form>
+                    <a href="{% url 'periode_admin:periode_update' p.pk %}"
+                       class="text-xs sm:text-sm font-medium text-maroon hover:bg-maroon/10 px-2.5 sm:px-3 py-1 rounded-lg transition whitespace-nowrap">Edit</a>
+                    <form method="POST" action="{% url 'periode_admin:periode_delete' p.pk %}"
+                          class="inline" onsubmit="return confirm('Yakin hapus periode ini?')">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 px-2.5 sm:px-3 py-1 rounded-lg transition whitespace-nowrap">Hapus</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="px-6 py-5">
+                <!-- Hint untuk mobile -->
+                <p class="text-xs text-gray-400 mb-3 md:hidden text-center">← Geser untuk melihat selengkapnya →</p>
+                <div class="overflow-x-auto -mx-6 px-6">
+                <div class="flex items-start justify-between min-w-[600px] md:min-w-0">
+                    {% with tahap=p.tahap_saat_ini %}
+                    <!-- Step 1: Administrasi -->
+                    <div class="flex-1 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if tahap == 'administrasi' %}bg-green-500 text-white ring-4 ring-green-200
+                                {% elif tahap == 'interview' or tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}bg-green-500 text-white
+                                {% else %}bg-gray-200 text-gray-500{% endif %}">
+                                {% if tahap == 'interview' or tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                {% else %}1{% endif %}
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold {% if tahap == 'administrasi' %}text-green-700{% else %}text-gray-600{% endif %}">Administrasi</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ p.tgl_buka_administrasi|date:"d M" }} - {{ p.tgl_tutup_administrasi|date:"d M" }}</p>
+                    </div>
+
+                    <!-- Connector -->
+                    <div class="flex-shrink-0 w-12 mt-5">
+                        <div class="h-0.5 w-full {% if tahap == 'interview' or tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}bg-green-400{% else %}bg-gray-200{% endif %}"></div>
+                    </div>
+
+                    <!-- Step 2: Interview -->
+                    <div class="flex-1 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if tahap == 'interview' %}bg-blue-500 text-white ring-4 ring-blue-200
+                                {% elif tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}bg-blue-500 text-white
+                                {% else %}bg-gray-200 text-gray-500{% endif %}">
+                                {% if tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                {% else %}2{% endif %}
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold {% if tahap == 'interview' %}text-blue-700{% else %}text-gray-600{% endif %}">Interview</p>
+                        {% if p.tgl_mulai_interview %}
+                        <p class="text-xs text-gray-400 mt-0.5">{{ p.tgl_mulai_interview|date:"d M" }} - {{ p.tgl_selesai_interview|date:"d M" }}</p>
+                        {% else %}
+                        <p class="text-xs text-gray-400 mt-0.5">Belum diatur</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Connector -->
+                    <div class="flex-shrink-0 w-12 mt-5">
+                        <div class="h-0.5 w-full {% if tahap == 'kegiatan_dad' or tahap == 'pengumuman' %}bg-blue-400{% else %}bg-gray-200{% endif %}"></div>
+                    </div>
+
+                    <!-- Step 3: Kegiatan DAD -->
+                    <div class="flex-1 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if tahap == 'kegiatan_dad' %}bg-purple-500 text-white ring-4 ring-purple-200
+                                {% elif tahap == 'pengumuman' %}bg-purple-500 text-white
+                                {% else %}bg-gray-200 text-gray-500{% endif %}">
+                                {% if tahap == 'pengumuman' %}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                {% else %}3{% endif %}
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold {% if tahap == 'kegiatan_dad' %}text-purple-700{% else %}text-gray-600{% endif %}">Kegiatan DAD</p>
+                        {% if p.tgl_mulai_kegiatan %}
+                        <p class="text-xs text-gray-400 mt-0.5">{{ p.tgl_mulai_kegiatan|date:"d M" }} - {{ p.tgl_selesai_kegiatan|date:"d M" }}</p>
+                        {% else %}
+                        <p class="text-xs text-gray-400 mt-0.5">Belum diatur</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Connector -->
+                    <div class="flex-shrink-0 w-12 mt-5">
+                        <div class="h-0.5 w-full {% if tahap == 'pengumuman' %}bg-purple-400{% else %}bg-gray-200{% endif %}"></div>
+                    </div>
+
+                    <!-- Step 4: Pengumuman -->
+                    <div class="flex-1 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                                {% if tahap == 'pengumuman' %}bg-yellow-500 text-white ring-4 ring-yellow-200
+                                {% else %}bg-gray-200 text-gray-500{% endif %}">
+                                4
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold {% if tahap == 'pengumuman' %}text-yellow-700{% else %}text-gray-600{% endif %}">Pengumuman</p>
+                        {% if p.tgl_pengumuman_kelulusan %}
+                        <p class="text-xs text-gray-400 mt-0.5">{{ p.tgl_pengumuman_kelulusan|date:"d M Y" }}</p>
+                        {% else %}
+                        <p class="text-xs text-gray-400 mt-0.5">Belum diatur</p>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-white rounded-xl border border-gray-200">
+        <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-gray-500">Belum ada periode kegiatan DAD.</p>
+        <a href="{% url 'periode_admin:periode_create' %}" class="mt-3 inline-block text-maroon font-medium hover:text-maroon-dark transition">
+            Tambah Periode Pertama &rarr;
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit{% else %}Tambah{% endif %} Kader - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'kader_admin:admin_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">{% if object %}Edit{% else %}Tambah{% endif %} Data Kader</h2>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not object %}
+        <div class="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z"/>
+            </svg>
+            <p class="text-sm text-blue-700">
+                Masukkan <strong>NPM</strong>, lalu klik <strong>Cari Data SSO</strong> untuk mengisi otomatis
+                data mahasiswa dari sistem SSO UMKO.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for field in form %}
+                <div{% if field.name in 'alamat_domisili' %} class="md:col-span-2"{% endif %}>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {% if field.name == 'npm' %}
+                    <div class="flex gap-2">
+                        <input type="text" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                               value="{{ field.value|default:'' }}"
+                               placeholder="{{ field.field.widget.attrs.placeholder|default:'NPM' }}"
+                               class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                        {% if not object %}
+                        <button type="button" id="btn-cari-sso"
+                                class="px-4 py-2.5 bg-maroon text-white rounded-lg text-sm font-semibold hover:bg-maroon-dark transition whitespace-nowrap flex items-center gap-2">
+                            <svg id="sso-icon-search" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                            </svg>
+                            <svg id="sso-icon-spin" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor"
+                                      d="M4 12a8 8 0 018-8v8H4z"/>
+                            </svg>
+                            <span id="btn-cari-label">Cari Data SSO</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div id="sso-status" class="mt-1 text-sm hidden"></div>
+                    {% elif field.name == 'alamat_domisili' %}
+                    <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" rows="3"
+                              placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+                              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">{{ field.value|default:'' }}</textarea>
+                    {% elif field.name == 'jenis_kelamin' %}
+                    <select name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                        <option value="">-- Pilih --</option>
+                        <option value="L" {% if field.value == 'L' %}selected{% endif %}>Laki-laki</option>
+                        <option value="P" {% if field.value == 'P' %}selected{% endif %}>Perempuan</option>
+                    </select>
+                    {% elif field.name == 'tgl_lahir' %}
+                    <input type="date" name="{{ field.html_name }}" id="{{ field.id_for_label }}" value="{{ field.value|default:'' }}"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                    {% elif field.name == 'jabatan_struktural' %}
+                    <select name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                        {% for val, label in field.field.widget.choices %}
+                        <option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% elif field.name == 'fakultas' or field.name == 'program_studi' %}
+                    <select name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                        {% for val, label in field.field.widget.choices %}
+                        <option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% elif field.name == 'foto_profil' %}
+                    {% if object and object.foto_profil %}
+                    <div class="mb-2">
+                        <img src="{{ object.foto_profil.url }}" alt="" class="w-20 h-20 object-cover rounded-lg border">
+                    </div>
+                    {% endif %}
+                    <input type="file" name="{{ field.html_name }}" accept="image/*"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-maroon/10 file:text-maroon hover:file:bg-maroon/20">
+                    {% else %}
+                    <input type="text" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+                           value="{{ field.value|default:'' }}"
+                           placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'kader_admin:admin_list' %}"
+               class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm">
+                Batal
+            </a>
+            <button type="submit"
+                    class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                Simpan
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    // ── Dinamis prodi berdasarkan fakultas ───────────────────────────────────
+    const fakultasSelect = document.getElementById('id_fakultas');
+    const prodiSelect    = document.getElementById('id_program_studi');
+    if (!fakultasSelect || !prodiSelect) return;
+
+    const savedProdi = '{{ form.program_studi.value|default:"" }}';
+
+    function loadProdi(fakultasNama, preselectValue) {
+        prodiSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
+        if (!fakultasNama) return;
+        const preNorm = (preselectValue || '').trim().toLowerCase();
+        fetch('/api/prodi/?fakultas_nama=' + encodeURIComponent(fakultasNama))
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.nama_prodi;
+                    opt.textContent = p.nama_prodi;
+                    // Cocokkan case-insensitive, juga coba partial match
+                    const pNorm = p.nama_prodi.trim().toLowerCase();
+                    if (preNorm && (pNorm === preNorm || pNorm.includes(preNorm) || preNorm.includes(pNorm))) {
+                        opt.selected = true;
+                    }
+                    prodiSelect.appendChild(opt);
+                });
+            });
+    }
+
+    fakultasSelect.addEventListener('change', function() { loadProdi(this.value, ''); });
+    if (fakultasSelect.value) loadProdi(fakultasSelect.value, savedProdi);
+
+    // ── Autofill dari SSO ────────────────────────────────────────────────────
+    const btnCari    = document.getElementById('btn-cari-sso');
+    if (!btnCari) return;  // tidak muncul pada mode edit
+
+    const npmInput      = document.getElementById('id_npm');
+    const ssoStatus     = document.getElementById('sso-status');
+    const iconSearch    = document.getElementById('sso-icon-search');
+    const iconSpin      = document.getElementById('sso-icon-spin');
+    const btnLabel      = document.getElementById('btn-cari-label');
+
+    function setLoading(on) {
+        btnCari.disabled = on;
+        iconSearch.classList.toggle('hidden', on);
+        iconSpin.classList.toggle('hidden', !on);
+        btnLabel.textContent = on ? 'Mencari...' : 'Cari Data SSO';
+    }
+
+    function showStatus(msg, type) {
+        const colors = { success: 'text-green-600', error: 'text-red-600', info: 'text-blue-500' };
+        ssoStatus.className = 'mt-1 text-sm ' + (colors[type] || 'text-gray-500');
+        ssoStatus.textContent = msg;
+        ssoStatus.classList.remove('hidden');
+    }
+
+    function setField(id, val) {
+        if (!val) return;
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    }
+
+    function cariDataSSO() {
+        const npm = (npmInput ? npmInput.value : '').trim();
+        if (!npm) { showStatus('Masukkan NPM terlebih dahulu.', 'error'); return; }
+
+        setLoading(true);
+        showStatus('Menghubungi SSO UMKO…', 'info');
+
+        fetch('/api/sso-mahasiswa/?npm=' + encodeURIComponent(npm), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showStatus(data.error, 'error'); return; }
+
+            // Isi field teks biasa
+            setField('id_nama_lengkap', data.nama);
+            setField('id_angkatan',     data.angkatan);
+            setField('id_tempat_lahir', data.tempat_lahir);
+            setField('id_tgl_lahir',    data.tgl_lahir);
+            setField('id_no_hp',        data.no_hp);
+            setField('id_alamat_domisili', data.alamat);
+
+            // Jenis kelamin
+            if (data.jenis_kelamin) {
+                const jkEl = document.getElementById('id_jenis_kelamin');
+                if (jkEl) jkEl.value = data.jenis_kelamin;
+            }
+
+            // Fakultas & Program Studi: backend sudah mengembalikan nama lokal
+            // yang pasti ada di <select>, jadi langsung set value.
+            if (data.fakultas) {
+                fakultasSelect.value = data.fakultas;
+                // Muat opsi prodi untuk fakultas ini, lalu preselect prodi dari SSO
+                loadProdi(data.fakultas, data.program_studi);
+            }
+
+            const info = data.status_mahasiswa ? ` — ${data.status_mahasiswa}` : '';
+            showStatus(`✓ Data ditemukan: ${data.nama}${info}. Periksa dan lengkapi data yang belum terisi.`, 'success');
+        })
+        .catch(() => showStatus('Gagal menghubungi SSO. Periksa koneksi dan coba lagi.', 'error'))
+        .finally(() => setLoading(false));
+    }
+
+    btnCari.addEventListener('click', cariDataSSO);
+    if (npmInput) {
+        npmInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); cariDataSSO(); }
+        });
+    }
+})();
+</script>
+{% endblock %}

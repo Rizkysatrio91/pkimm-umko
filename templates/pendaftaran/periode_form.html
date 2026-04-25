@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}Tambah{% endif %} Periode DAD - PK IMM FTIK UMKO{% endblock %}
+
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Tambah{% endif %} Periode DAD{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-maroon-dark">
+            {% if form.instance.pk %}Edit Periode{% else %}Tambah Periode Baru{% endif %}
+        </h2>
+        <a href="{% url 'periode_admin:periode_list' %}"
+           class="text-gray-500 hover:text-maroon transition text-sm font-medium">
+            &larr; Kembali
+        </a>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Nama Periode -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div>
+                <label for="id_nama_periode" class="block text-sm font-medium text-gray-700 mb-1">Nama Periode</label>
+                {{ form.nama_periode }}
+                {% for error in form.nama_periode.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Section 1: Administrasi -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">1</div>
+                <h3 class="text-lg font-semibold text-gray-900">Tahap Administrasi Pendaftaran</h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Calon kader dapat mendaftar dan data akan diverifikasi otomatis selama periode ini.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_tgl_buka_administrasi" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Buka</label>
+                    {{ form.tgl_buka_administrasi }}
+                    {% for error in form.tgl_buka_administrasi.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div>
+                    <label for="id_tgl_tutup_administrasi" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Tutup</label>
+                    {{ form.tgl_tutup_administrasi }}
+                    {% for error in form.tgl_tutup_administrasi.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Interview -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">2</div>
+                <h3 class="text-lg font-semibold text-gray-900">Tahap Seleksi Interview</h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Panitia menilai peserta yang lolos administrasi. (Opsional)</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_tgl_mulai_interview" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+                    {{ form.tgl_mulai_interview }}
+                    {% for error in form.tgl_mulai_interview.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div>
+                    <label for="id_tgl_selesai_interview" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+                    {{ form.tgl_selesai_interview }}
+                    {% for error in form.tgl_selesai_interview.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Kegiatan DAD -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">3</div>
+                <h3 class="text-lg font-semibold text-gray-900">Tahap Kegiatan DAD (3 Hari)</h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Pelaksanaan kegiatan Darul Arqam Dasar. Panitia menilai aktivitas harian. (Opsional)</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_tgl_mulai_kegiatan" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+                    {{ form.tgl_mulai_kegiatan }}
+                    {% for error in form.tgl_mulai_kegiatan.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div>
+                    <label for="id_tgl_selesai_kegiatan" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+                    {{ form.tgl_selesai_kegiatan }}
+                    {% for error in form.tgl_selesai_kegiatan.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Pengumuman -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-sm">4</div>
+                <h3 class="text-lg font-semibold text-gray-900">Pengumuman Kelulusan</h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Tanggal hasil kelulusan diumumkan kepada peserta. (Opsional)</p>
+            <div class="max-w-sm">
+                <label for="id_tgl_pengumuman_kelulusan" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pengumuman</label>
+                {{ form.tgl_pengumuman_kelulusan }}
+                {% for error in form.tgl_pengumuman_kelulusan.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Aktivasi -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center space-x-3">
+                {{ form.is_active }}
+                <label for="id_is_active" class="text-sm font-medium text-gray-700">Aktifkan periode ini</label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1 ml-7">Hanya satu periode yang bisa aktif dalam satu waktu.</p>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+            <a href="{% url 'periode_admin:periode_list' %}"
+               class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium text-sm">
+                Batal
+            </a>
+            <button type="submit"
+                    class="bg-maroon text-white px-6 py-2 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition">
+                {% if form.instance.pk %}Simpan Perubahan{% else %}Tambah Periode{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

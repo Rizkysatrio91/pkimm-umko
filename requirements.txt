@@ -1,0 +1,14 @@
+Django>=5.0
+psycopg2-binary
+django-environ
+django-ckeditor-5
+Pillow
+openai
+PyMuPDF
+openpyxl
+python-docx
+docx2pdf
+xhtml2pdf
+gunicorn
+requests
+qrcode[pil]

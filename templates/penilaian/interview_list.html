@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Seleksi Interview - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-2xl font-bold text-maroon-dark">Seleksi Interview</h2>
+
+    <!-- Tabs -->
+    <div class="flex space-x-1 bg-gray-100 rounded-lg p-1 w-fit">
+        <a href="?tab=belum"
+           class="px-4 py-2 text-sm font-medium rounded-md transition {% if tab == 'belum' %}bg-white text-maroon shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+            Belum Dinilai
+        </a>
+        <a href="?tab=sudah"
+           class="px-4 py-2 text-sm font-medium rounded-md transition {% if tab == 'sudah' %}bg-white text-maroon shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+            Sudah Dinilai
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="table-responsive">
+            <table class="w-full text-sm">
+                <thead class="bg-maroon text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">No</th>
+                        <th class="px-4 py-3 text-left font-semibold">Nama</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">NPM</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Prodi</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Tgl Daftar</th>
+                        {% if tab == 'sudah' %}
+                        <th class="px-4 py-3 text-center font-semibold">Rata-rata</th>
+                        <th class="px-4 py-3 text-center font-semibold">Status</th>
+                        {% endif %}
+                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in pendaftaran_list %}
+                    {% if tab == 'belum' and p.has_interview == 0 or tab == 'sudah' and p.has_interview > 0 %}
+                    <tr class="hover:bg-cream/50 transition">
+                        <td class="px-4 py-3 text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900">{{ p.id_biodata.nama_lengkap }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell font-mono">{{ p.id_biodata.npm }}</td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-600">{{ p.id_biodata.program_studi }}</td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-500">{{ p.tgl_daftar|date:"d/m/Y" }}</td>
+                        {% if tab == 'sudah' %}
+                        {% with iv=p.nilai_interview_set.first %}
+                        <td class="px-4 py-3 text-center font-semibold">{{ iv.rata_rata|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if iv.status_interview == 'lulus_interview' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ iv.get_status_interview_display }}
+                            </span>
+                        </td>
+                        {% endwith %}
+                        {% endif %}
+                        <td class="px-4 py-3 text-center">
+                            {% if p.has_interview == 0 %}
+                            <a href="{% url 'panitia:interview_create' p.id_pendaftaran %}"
+                               class="inline-flex items-center px-3 py-1.5 bg-maroon text-white text-xs font-medium rounded-lg hover:bg-maroon-dark transition">
+                                Nilai
+                            </a>
+                            {% else %}
+                            <a href="{% url 'panitia:interview_detail' p.nilai_interview_set.first.id_interview %}"
+                               class="text-maroon hover:text-maroon-dark font-medium text-sm transition">Detail</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">Belum ada peserta.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "components/pagination.html" %}
+</div>
+{% endblock %}

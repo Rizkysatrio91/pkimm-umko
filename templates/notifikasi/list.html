@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Notifikasi - PK IMM FTIK UMKO{% endblock %}
+{% block page_title %}Notifikasi{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-maroon-dark">Semua Notifikasi</h2>
+        {% if notifikasi_list %}
+        <form method="post" action="{% url 'notifikasi:mark_all_read' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="text-sm text-maroon hover:text-maroon-dark font-medium transition">
+                Tandai Semua Dibaca
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if notifikasi_list %}
+    <div class="space-y-3">
+        {% for notif in notifikasi_list %}
+        <div class="bg-white rounded-lg border {{ notif.is_read|yesno:'border-gray-200,border-maroon/30' }} p-4 flex items-start gap-4 {{ notif.is_read|yesno:',bg-maroon/5' }} notif-enter">
+            <!-- Icon -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center {{ notif.is_read|yesno:'bg-gray-100,bg-maroon/10' }}">
+                {% if notif.tipe == 'status_ocr' %}
+                <svg class="w-5 h-5 {{ notif.is_read|yesno:'text-gray-400,text-maroon' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                {% else %}
+                <svg class="w-5 h-5 {{ notif.is_read|yesno:'text-gray-400,text-maroon' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+                {% endif %}
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <h3 class="text-sm {{ notif.is_read|yesno:'text-gray-600,font-semibold text-gray-900' }}">
+                    {{ notif.judul }}
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">{{ notif.pesan }}</p>
+                <span class="text-xs text-gray-400 mt-2 inline-block">{{ notif.created_at|timesince }} yang lalu</span>
+            </div>
+            <!-- Mark read button -->
+            {% if not notif.is_read %}
+            <form method="post" action="{% url 'notifikasi:mark_read' notif.id_notif %}">
+                {% csrf_token %}
+                <button type="submit" title="Tandai dibaca"
+                        class="text-gray-400 hover:text-maroon transition p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% include "components/pagination.html" %}
+
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <p class="text-gray-500">Belum ada notifikasi.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

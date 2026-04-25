@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}Tambah{% endif %} Kata Sambutan - PK IMM FTIK UMKO{% endblock %}
+
+{% block extra_css %}
+{{ form.media.css }}
+<style>
+    .ck-editor__editable { min-height: 250px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'profil_admin:sambutan_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">{% if is_edit %}Edit{% else %}Tambah{% endif %} Kata Sambutan</h2>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+            <!-- Nama -->
+            <div>
+                <label for="id_nama" class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                <input type="text" name="nama" id="id_nama" value="{{ form.nama.value|default:'' }}" placeholder="Nama Ketua Umum"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if form.nama.errors %}border-red-400 bg-red-50{% endif %}">
+                {% for error in form.nama.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Jabatan -->
+            <div>
+                <label for="id_jabatan" class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                <input type="text" name="jabatan" id="id_jabatan" value="{{ form.jabatan.value|default:'' }}" placeholder="Jabatan"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if form.jabatan.errors %}border-red-400 bg-red-50{% endif %}">
+                {% for error in form.jabatan.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Foto -->
+            <div>
+                <label for="id_foto" class="block text-sm font-medium text-gray-700 mb-1">Foto</label>
+                {% if is_edit and sambutan.foto %}
+                <div class="mb-2">
+                    <img src="{{ sambutan.foto.url }}" class="w-20 h-20 rounded-full object-cover border">
+                </div>
+                {% endif %}
+                <input type="file" name="foto" id="id_foto" accept="image/*"
+                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-maroon/10 file:text-maroon hover:file:bg-maroon/20">
+                {% for error in form.foto.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Kata Sambutan (CKEditor) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kata Sambutan</label>
+                {{ form.kata_sambutan }}
+                {% for error in form.kata_sambutan.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Periode -->
+            <div>
+                <label for="id_periode" class="block text-sm font-medium text-gray-700 mb-1">Periode</label>
+                <input type="text" name="periode" id="id_periode" value="{{ form.periode.value|default:'' }}" placeholder="Contoh: 2024-2025"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if form.periode.errors %}border-red-400 bg-red-50{% endif %}">
+                {% for error in form.periode.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <!-- Is Active -->
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}
+                       class="w-4 h-4 text-maroon border-gray-300 rounded focus:ring-maroon">
+                <label for="id_is_active" class="text-sm font-medium text-gray-700">Aktif</label>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'profil_admin:sambutan_list' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm">Batal</a>
+            <button type="submit" class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                {% if is_edit %}Simpan Perubahan{% else %}Tambah Sambutan{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.media.js }}
+{% endblock %}

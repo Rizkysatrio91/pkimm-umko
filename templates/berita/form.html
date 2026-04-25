@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}Tulis{% endif %} Berita - PK IMM FTIK UMKO{% endblock %}
+
+{% block extra_css %}
+{{ form.media.css }}
+<style>
+    .ck-editor__editable { min-height: 400px; }
+    .diff-ins { background-color: #bbf7d0; color: #065f46; text-decoration: none; padding: 0 2px; border-radius: 2px; }
+    .diff-del { background-color: #fecaca; color: #7f1d1d; text-decoration: line-through; padding: 0 2px; border-radius: 2px; }
+    .kategori-badge {
+        display: inline-block; padding: 2px 8px; border-radius: 9999px;
+        font-size: 11px; font-weight: 600; margin-right: 6px;
+    }
+    .kategori-PUEBI  { background: #dbeafe; color: #1e40af; }
+    .kategori-SPOK   { background: #fef3c7; color: #92400e; }
+    .kategori-Diksi  { background: #ede9fe; color: #5b21b6; }
+    .kategori-Kohesi { background: #dcfce7; color: #166534; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6" x-data="beritaEditor()">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'penulis:penulis_dashboard' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">{% if is_edit %}Edit{% else %}Tulis{% endif %} Berita</h2>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+            <!-- Judul -->
+            <div>
+                <label for="id_judul" class="block text-sm font-medium text-gray-700 mb-1">Judul Berita</label>
+                <input type="text" name="judul" id="id_judul" value="{{ form.judul.value|default:'' }}"
+                       placeholder="Masukkan judul berita"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm
+                              {% if form.judul.errors %}border-red-400 bg-red-50{% endif %}">
+                {% for error in form.judul.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Kategori -->
+            <div>
+                <label for="id_kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                <select name="kategori" id="id_kategori"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm">
+                    <option value="">-- Pilih Kategori --</option>
+                    {% for val, label in form.fields.kategori.choices %}
+                    {% if val %}
+                    <option value="{{ val }}" {% if form.kategori.value == val %}selected{% endif %}>{{ label }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                {% for error in form.kategori.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Gambar Utama -->
+            <div>
+                <label for="id_gambar_utama" class="block text-sm font-medium text-gray-700 mb-1">Gambar Utama</label>
+                {% if berita and berita.gambar_utama %}
+                <div class="mb-2">
+                    <img src="{{ berita.gambar_utama.url }}" alt="Preview" class="h-32 rounded-lg object-cover">
+                </div>
+                {% endif %}
+                <input type="file" name="gambar_utama" id="id_gambar_utama" accept="image/jpeg,image/png"
+                       @change="previewImage($event)"
+                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-maroon/10 file:text-maroon hover:file:bg-maroon/20">
+                <template x-if="imagePreview">
+                    <img :src="imagePreview" class="mt-2 h-32 rounded-lg object-cover">
+                </template>
+                {% for error in form.gambar_utama.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Konten Draft (CKEditor) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Konten Berita</label>
+                {{ form.konten_draft }}
+                {% for error in form.konten_draft.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- AI Correction Button -->
+            <div>
+                <button type="button" @click="koreksiAI()"
+                        :disabled="loading"
+                        class="inline-flex items-center px-5 py-2.5 bg-gold text-maroon-dark rounded-lg font-semibold hover:bg-gold-light transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <template x-if="loading">
+                        <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                    </template>
+                    <template x-if="!loading">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </template>
+                    <span x-text="loading ? 'AI sedang memproses...' : 'Cek Ejaan / Koreksi AI'"></span>
+                </button>
+            </div>
+
+            <!-- Error message -->
+            <template x-if="errorMsg">
+                <div class="px-4 py-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200" x-text="errorMsg"></div>
+            </template>
+
+            <!-- AI Result: Side by Side dengan word-level diff -->
+            <template x-if="kontenFinal">
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Hasil Koreksi AI</h3>
+                    <p class="text-xs text-gray-500">
+                        Warna <span class="diff-del">merah coret</span> = teks dihapus,
+                        <span class="diff-ins">hijau</span> = teks hasil koreksi.
+                    </p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Draft Asli</p>
+                            <div class="p-4 bg-red-50 rounded-lg text-sm text-gray-700 max-h-80 overflow-y-auto berita-content" x-html="diffDraftHtml"></div>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Hasil Koreksi</p>
+                            <div class="p-4 bg-green-50 rounded-lg text-sm text-gray-700 max-h-80 overflow-y-auto berita-content" x-html="diffFinalHtml"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="button" @click="terapkanKoreksi()"
+                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Terapkan Hasil Koreksi
+                        </button>
+                        <button type="button" @click="resetKoreksi()"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                            Abaikan
+                        </button>
+                    </div>
+
+                    <!-- Saran AI per kategori -->
+                    <template x-if="saranList && saranList.length > 0">
+                        <div x-data="{ open: true }">
+                            <button type="button" @click="open = !open"
+                                    class="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-maroon">
+                                <svg :class="open ? 'rotate-90' : ''" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                Saran Perbaikan AI (<span x-text="saranList.length"></span>)
+                            </button>
+                            <div x-show="open" x-transition class="mt-2 p-4 bg-blue-50 rounded-lg text-sm text-gray-700">
+                                <ul class="space-y-2">
+                                    <template x-for="(item, idx) in saranList" :key="idx">
+                                        <li class="flex flex-col gap-0.5">
+                                            <div>
+                                                <span :class="'kategori-badge kategori-' + (item.kategori || 'PUEBI')" x-text="item.kategori || '-'"></span>
+                                                <span class="diff-del" x-text="item.sebelum"></span>
+                                                <span class="mx-1">→</span>
+                                                <span class="diff-ins" x-text="item.sesudah"></span>
+                                            </div>
+                                            <template x-if="item.alasan">
+                                                <p class="text-xs text-gray-600 ml-1" x-text="item.alasan"></p>
+                                            </template>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="saranList && saranList.length === 0">
+                        <div class="p-3 bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg">
+                            Naskah Anda sudah sesuai kaidah PUEBI. Tidak ada koreksi.
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+
+        <!-- Hidden fields for AI result -->
+        <input type="hidden" name="konten_final_hidden" :value="kontenFinal">
+        <input type="hidden" name="saran_ai_hidden" :value="saranAI">
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'penulis:penulis_dashboard' %}"
+               class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm">
+                Batal
+            </a>
+            <button type="submit"
+                    class="bg-maroon text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                Publish Berita
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.media.js }}
+<script src="https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js"></script>
+<script>
+function findCKEditorInstance() {
+    // CKEditor 5 menyimpan ckeditorInstance di elemen editable div,
+    // BUKAN di textarea .django_ckeditor_5.
+    const editables = document.querySelectorAll('.ck-editor__editable');
+    for (const el of editables) {
+        if (el.ckeditorInstance) return el.ckeditorInstance;
+    }
+    return null;
+}
+
+function getCKEditorContent() {
+    const editor = findCKEditorInstance();
+    if (editor) return editor.getData();
+    const textarea = document.querySelector('[name="konten_draft"]');
+    return textarea ? textarea.value : '';
+}
+
+function setCKEditorContent(html) {
+    const editor = findCKEditorInstance();
+    if (editor) {
+        editor.setData(html);
+        return true;
+    }
+    // Fallback ke textarea — editor tidak akan ter-refresh secara visual
+    const textarea = document.querySelector('[name="konten_draft"]');
+    if (textarea) { textarea.value = html; return false; }
+    return false;
+}
+
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+}
+
+function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/** Word-level diff side-by-side.
+ *  Kembalikan dua string HTML: draft (dengan merah coret) dan final (dengan hijau). */
+function buildDiffViews(draftHtml, finalHtml) {
+    const draftText = stripHtml(draftHtml);
+    const finalText = stripHtml(finalHtml);
+
+    if (typeof Diff === 'undefined') {
+        return {
+            draft: escapeHtml(draftText).replace(/\n/g, '<br>'),
+            final: escapeHtml(finalText).replace(/\n/g, '<br>'),
+        };
+    }
+
+    const parts = Diff.diffWordsWithSpace(draftText, finalText);
+    let draftOut = '';
+    let finalOut = '';
+
+    parts.forEach(p => {
+        const safe = escapeHtml(p.value).replace(/\n/g, '<br>');
+        if (p.added) {
+            finalOut += '<span class="diff-ins">' + safe + '</span>';
+        } else if (p.removed) {
+            draftOut += '<span class="diff-del">' + safe + '</span>';
+        } else {
+            draftOut += safe;
+            finalOut += safe;
+        }
+    });
+
+    return { draft: draftOut, final: finalOut };
+}
+
+function beritaEditor() {
+    return {
+        kontenFinal: '',
+        kontenDraftSnapshot: '',
+        saranAI: '',
+        saranList: null,
+        diffDraftHtml: '',
+        diffFinalHtml: '',
+        loading: false,
+        errorMsg: '',
+        imagePreview: null,
+
+        previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.imagePreview = URL.createObjectURL(file);
+            }
+        },
+
+        resetKoreksi() {
+            this.kontenFinal = '';
+            this.saranAI = '';
+            this.saranList = null;
+            this.diffDraftHtml = '';
+            this.diffFinalHtml = '';
+        },
+
+        terapkanKoreksi() {
+            const ok = setCKEditorContent(this.kontenFinal);
+            if (!ok) {
+                this.errorMsg = 'Editor belum siap. Coba refresh halaman lalu ulangi.';
+                return;
+            }
+            this.resetKoreksi();
+        },
+
+        async koreksiAI() {
+            const konten = getCKEditorContent();
+            if (!konten || !konten.trim()) {
+                this.errorMsg = 'Konten berita tidak boleh kosong.';
+                return;
+            }
+
+            this.loading = true;
+            this.errorMsg = '';
+            this.resetKoreksi();
+            this.kontenDraftSnapshot = konten;
+
+            try {
+                const resp = await fetch('{% url "api:koreksi_ai" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ konten_draft: konten })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.kontenFinal = data.konten_final;
+                    this.saranAI = data.saran_ai || '';
+                    this.saranList = Array.isArray(data.saran_list) ? data.saran_list : [];
+
+                    const diff = buildDiffViews(konten, data.konten_final);
+                    this.diffDraftHtml = diff.draft;
+                    this.diffFinalHtml = diff.final;
+                } else {
+                    this.errorMsg = data.error || 'Terjadi kesalahan saat memproses.';
+                }
+            } catch (err) {
+                this.errorMsg = 'Gagal terhubung ke server. Coba lagi nanti.';
+            } finally {
+                this.loading = false;
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

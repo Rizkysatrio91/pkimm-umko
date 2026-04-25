@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Upload Data Kader - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="{% url 'kader_admin:admin_list' %}" class="text-gray-500 hover:text-maroon transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold text-maroon-dark">Upload Data Kader (Excel)</h2>
+    </div>
+
+    <!-- Langkah 1: Download template -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-start gap-3">
+            <div class="bg-maroon/10 text-maroon rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">1</div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900">Unduh Template Excel</h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    Gunakan template resmi agar kolom dan format konsisten.
+                    Kolom dengan tanda <span class="text-red-500">*</span> wajib diisi.
+                </p>
+                <a href="{% url 'kader_admin:admin_upload_template' %}"
+                   class="mt-3 inline-flex items-center bg-maroon text-white px-4 py-2 rounded-lg font-medium hover:bg-maroon-dark transition text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+                    </svg>
+                    Download Template
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Langkah 2: Upload file -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-start gap-3">
+            <div class="bg-maroon/10 text-maroon rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">2</div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900">Upload File Excel</h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    File .xlsx atau .xlsm. Jika NPM sudah ada, baris akan <strong>diperbarui</strong>;
+                    jika belum, baris akan <strong>ditambahkan</strong>. Baris yang gagal akan dilewati dan
+                    detail error ditampilkan di bawah.
+                </p>
+                <form method="POST" enctype="multipart/form-data" class="mt-3 space-y-3">
+                    {% csrf_token %}
+                    <input type="file" name="file_excel" accept=".xlsx,.xlsm" required
+                           class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-maroon/10 file:text-maroon hover:file:bg-maroon/20 transition">
+                    <button type="submit"
+                            class="bg-maroon text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark focus:ring-4 focus:ring-maroon/20 transition text-sm">
+                        Proses Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hasil Import -->
+    {% if result %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <h3 class="font-semibold text-gray-900">Hasil Import</h3>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                <p class="text-xs text-green-700">Baru Dibuat</p>
+                <p class="text-2xl font-bold text-green-800">{{ result.created }}</p>
+            </div>
+            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-xs text-blue-700">Diperbarui</p>
+                <p class="text-2xl font-bold text-blue-800">{{ result.updated }}</p>
+            </div>
+            <div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                <p class="text-xs text-red-700">Gagal</p>
+                <p class="text-2xl font-bold text-red-800">{{ result.total_error }}</p>
+            </div>
+        </div>
+
+        {% if result.has_error %}
+        <div class="border border-red-200 rounded-lg overflow-hidden">
+            <div class="bg-red-50 px-4 py-2 font-semibold text-red-800 text-sm">Rincian Error</div>
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="text-left px-4 py-2 w-24">Baris</th>
+                        <th class="text-left px-4 py-2">Pesan Error</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row, msg in result.errors %}
+                    <tr>
+                        <td class="px-4 py-2 font-mono text-gray-700">{{ row }}</td>
+                        <td class="px-4 py-2 text-red-700">{{ msg }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-end">
+            <a href="{% url 'kader_admin:admin_list' %}"
+               class="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-200 transition text-sm">
+                Kembali ke Daftar Kader
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

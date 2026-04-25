@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}Tambah{% endif %} Rundown DAD{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-maroon px-6 py-4">
+            <h1 class="text-xl font-bold text-white">{% if is_edit %}Edit Sesi Rundown{% else %}Tambah Sesi Rundown{% endif %}</h1>
+        </div>
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                {% for error in form.non_field_errors %}
+                <p class="text-red-600 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Baris 1: Hari, Tanggal, Jam -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Hari Ke</label>
+                    {{ form.hari_ke }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal</label>
+                    {{ form.tanggal }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Jam Mulai</label>
+                    {{ form.jam_mulai }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Jam Selesai</label>
+                    {{ form.jam_selesai }}
+                </div>
+            </div>
+
+            <!-- Materi -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Materi / Kegiatan</label>
+                {{ form.materi }}
+            </div>
+
+            <!-- Pemateri per Kelas -->
+            <div>
+                <p class="text-sm font-semibold text-gray-700 mb-2">Pemateri per Kelas</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas A</label>
+                        {{ form.pemateri_a }}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas B</label>
+                        {{ form.pemateri_b }}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas C</label>
+                        {{ form.pemateri_c }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- PJ per Kelas -->
+            <div>
+                <p class="text-sm font-semibold text-gray-700 mb-2">PJ per Kelas</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas A</label>
+                        {{ form.pj_a }}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas B</label>
+                        {{ form.pj_b }}
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Kelas C</label>
+                        {{ form.pj_c }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Urutan & QR -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Urutan</label>
+                    {{ form.urutan }}
+                    <p class="text-xs text-gray-400 mt-1">Urutan tampil dalam hari yang sama</p>
+                </div>
+                <div class="flex items-center gap-3 pt-5">
+                    {{ form.is_absensi }}
+                    <label class="text-sm font-semibold text-gray-700">Perlu Absensi QR</label>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-3">
+                <button type="submit" class="px-5 py-2.5 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
+                    {% if is_edit %}Simpan Perubahan{% else %}Tambah Sesi{% endif %}
+                </button>
+                <a href="{% url 'rundown_admin:rundown_list' %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                    Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

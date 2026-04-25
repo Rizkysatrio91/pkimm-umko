@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Riwayat Absensi{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-maroon">Riwayat Absensi Saya</h1>
+        {% if pendaftaran and pendaftaran.id_kelompok %}
+        <p class="text-sm text-gray-500 mt-1">
+            Kelas {{ pendaftaran.id_kelompok.nama_kelompok }}
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Summary Card -->
+    {% if pendaftaran %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+                <p class="text-2xl font-bold text-maroon">{{ total_hadir }}</p>
+                <p class="text-xs text-gray-500">Hadir</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-400">{{ total_sesi }}</p>
+                <p class="text-xs text-gray-500">Total Sesi</p>
+            </div>
+            <div>
+                {% if total_sesi > 0 %}
+                {% widthratio total_hadir total_sesi 100 as persen %}
+                <p class="text-2xl font-bold {% if persen >= 80 %}text-green-600{% elif persen >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                    {{ persen }}%
+                </p>
+                {% else %}
+                <p class="text-2xl font-bold text-gray-400">0%</p>
+                {% endif %}
+                <p class="text-xs text-gray-500">Persentase</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Attendance List -->
+    {% if absensi_list %}
+    <div class="space-y-2">
+        {% for absensi in absensi_list %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-800">{{ absensi.id_qr.id_rundown.materi }}</p>
+                <p class="text-sm text-gray-500">
+                    {{ absensi.id_qr.id_rundown.hari_ke }} |
+                    {{ absensi.id_qr.id_rundown.jam_mulai|time:"H:i" }} – {{ absensi.id_qr.id_rundown.jam_selesai|time:"H:i" }}
+                </p>
+            </div>
+            <div class="flex-shrink-0 text-right">
+                <p class="text-xs text-gray-400">{{ absensi.waktu_scan|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+        <p class="text-gray-500">Belum ada riwayat absensi.</p>
+    </div>
+    {% endif %}
+
+    <div class="mt-6 text-center">
+        <a href="{% url 'pendaftaran:absensi_scan' %}" class="text-sm text-maroon hover:underline font-semibold">
+            Scan Absensi
+        </a>
+    </div>
+</div>
+{% endblock %}
