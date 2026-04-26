@@ -58,6 +58,7 @@ class LaporanService:
 
     @classmethod
     def _fill_common(cls, doc: Document, judul: str, jenis: str, periode: str, user):
+        from apps.kader.models import BiodataKader
         tanggal = timezone.now().strftime('%d %B %Y')
         cls._replace(doc, '{{JUDUL_LAPORAN}}',    judul)
         cls._replace(doc, '{{JENIS_LAPORAN}}',    jenis)
@@ -66,6 +67,10 @@ class LaporanService:
         cls._replace(doc, '{{NAMA_PENCETAK}}',    user.username)
         cls._replace(doc, '{{JABATAN_PENCETAK}}', 'Administrator')
         cls._replace(doc, '{{CATATAN_LAPORAN}}',  '')
+        ketua = BiodataKader.objects.filter(jabatan_struktural='ketua_umum').first()
+        sekretaris = BiodataKader.objects.filter(jabatan_struktural='sekretaris_umum').first()
+        cls._replace(doc, '{{NAMA_KETUA}}',       ketua.nama_lengkap.upper() if ketua else '________________________')
+        cls._replace(doc, '{{NAMA_SEKRETARIS}}',  sekretaris.nama_lengkap.upper() if sekretaris else '________________________')
 
     # ══════════════════════════════════════════════════════════════
     # Helper tabel
