@@ -145,26 +145,32 @@ class LaporanService:
 
     @classmethod
     def _convert_to_pdf(cls, docx_bytes: bytes):
-        """Konversi docx ke PDF via docx2pdf (membutuhkan MS Word). Return None jika gagal."""
+        """Konversi docx ke PDF via LibreOffice headless. Return None jika gagal."""
+        import subprocess
         tmp_docx = tmp_pdf = None
         try:
-            import docx2pdf
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as f:
+            tmp_dir = tempfile.mkdtemp()
+            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False, dir=tmp_dir) as f:
                 f.write(docx_bytes)
                 tmp_docx = f.name
+            result = subprocess.run(
+                ['libreoffice', '--headless', '--convert-to', 'pdf',
+                 '--outdir', tmp_dir, tmp_docx],
+                capture_output=True, timeout=60,
+                env={**os.environ, 'HOME': tmp_dir},
+            )
             tmp_pdf = tmp_docx[:-5] + '.pdf'
-            docx2pdf.convert(tmp_docx, tmp_pdf)
-            if os.path.exists(tmp_pdf) and os.path.getsize(tmp_pdf) > 0:
+            if result.returncode == 0 and os.path.exists(tmp_pdf) and os.path.getsize(tmp_pdf) > 0:
                 with open(tmp_pdf, 'rb') as f:
                     return f.read()
             return None
         except Exception:
             return None
         finally:
-            for path in filter(None, [tmp_docx, tmp_pdf]):
+            import shutil
+            if tmp_dir and os.path.exists(tmp_dir):
                 try:
-                    if os.path.exists(path):
-                        os.remove(path)
+                    shutil.rmtree(tmp_dir)
                 except Exception:
                     pass
 
