@@ -95,6 +95,7 @@ yarn.lock
 # ARTEFAK BUILD / DOKUMEN LOKAL (tidak perlu di-deploy)
 # ===========================================
 *.docx
+!templates/laporan_template/*.docx
 *.drawio
 ALL_*.xml
 USECASE_*.xml
