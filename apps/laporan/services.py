@@ -270,7 +270,7 @@ class LaporanService:
             cls._update_header_row(table, ['No', 'Nama Lengkap', 'NPM', 'Program Studi', 'Jenis Kelamin', 'Status'])
             for i, k in enumerate(queryset, 1):
                 cls._add_data_row(table, [
-                    str(i), k.nama_lengkap, k.npm, k.program_studi,
+                    str(i), k.nama_lengkap.title(), k.npm, k.program_studi,
                     'Laki-laki' if k.jenis_kelamin == 'L' else 'Perempuan',
                     k.jabatan_struktural.title(),
                 ], i)
@@ -289,7 +289,7 @@ class LaporanService:
         for i, k in enumerate(queryset, 1):
             r = i + 5
             for col, val in enumerate(
-                [i, k.nama_lengkap, k.npm, k.program_studi,
+                [i, k.nama_lengkap.title(), k.npm, k.program_studi,
                  'Laki-laki' if k.jenis_kelamin == 'L' else 'Perempuan',
                  k.fakultas, k.angkatan, k.jabatan_struktural.title()], 1
             ):
@@ -328,7 +328,7 @@ class LaporanService:
                 bio = p.id_biodata
                 cls._add_data_row(table, [
                     str(i),
-                    bio.nama_lengkap if bio else '-',
+                    bio.nama_lengkap.title() if bio else '-',
                     bio.npm if bio else '-',
                     bio.program_studi if bio else '-',
                     ('Laki-laki' if bio.jenis_kelamin == 'L' else 'Perempuan') if bio else '-',
@@ -352,7 +352,7 @@ class LaporanService:
             bio = p.id_biodata
             for col, val in enumerate([
                 i, p.no_registrasi,
-                bio.nama_lengkap if bio else '-',
+                bio.nama_lengkap.title() if bio else '-',
                 bio.npm if bio else '-',
                 bio.program_studi if bio else '-',
                 ('Laki-laki' if bio.jenis_kelamin == 'L' else 'Perempuan') if bio else '-',
@@ -397,7 +397,7 @@ class LaporanService:
                 bio  = pend.id_biodata if pend else None
                 cls._add_data_row(table, [
                     str(i),
-                    bio.nama_lengkap if bio else '-',
+                    bio.nama_lengkap.title() if bio else '-',
                     bio.npm if bio else '-',
                     ('Laki-laki' if bio.jenis_kelamin == 'L' else 'Perempuan') if bio else '-',
                     str(r.total_akhir or '0'),
@@ -424,7 +424,7 @@ class LaporanService:
             bio  = pend.id_biodata if pend else None
             for col, val in enumerate([
                 r.peringkat or '-',
-                bio.nama_lengkap if bio else '-',
+                bio.nama_lengkap.title() if bio else '-',
                 bio.npm if bio else '-',
                 ('Laki-laki' if bio.jenis_kelamin == 'L' else 'Perempuan') if bio else '-',
                 float(r.total_skor_aktivitas or 0),
@@ -538,7 +538,7 @@ class LaporanService:
         if bio.tempat_lahir or bio.tgl_lahir:
             ttl = f"{bio.tempat_lahir or '-'}, {bio.tgl_lahir.strftime('%d %B %Y') if bio.tgl_lahir else '-'}"
         return [
-            ('Nama Lengkap', bio.nama_lengkap),
+            ('Nama Lengkap', bio.nama_lengkap.title()),
             ('NPM', bio.npm),
             ('Program Studi', bio.program_studi),
             ('Fakultas', bio.fakultas),
