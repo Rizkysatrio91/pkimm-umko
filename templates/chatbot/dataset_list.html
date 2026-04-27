@@ -5,10 +5,16 @@
 <div class="space-y-6" x-data="unansweredManager()">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-maroon-dark">Dataset Chatbot</h2>
-        <a href="{% url 'chatbot_admin:dataset_create' %}"
-           class="bg-maroon text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark transition text-sm">
-            + Tambah Dataset
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'chatbot_admin:dokumen_list' %}"
+               class="px-4 py-2.5 border border-maroon text-maroon rounded-lg hover:bg-maroon hover:text-white transition text-sm font-medium">
+                Dokumen Pengetahuan (PDF) →
+            </a>
+            <a href="{% url 'chatbot_admin:dataset_create' %}"
+               class="bg-maroon text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark transition text-sm">
+                + Tambah Dataset
+            </a>
+        </div>
     </div>
 
     <!-- Pertanyaan Belum Terjawab -->

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Dokumen Pengetahuan - PK IMM FTIK UMKO{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-maroon-dark">Dokumen Pengetahuan (RAG)</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Upload PDF (AD/ART, panduan, dll) — chatbot otomatis belajar dari isinya.
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'chatbot_admin:dataset_list' %}"
+               class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                ← Dataset Manual
+            </a>
+            <a href="{% url 'chatbot_admin:dokumen_upload' %}"
+               class="bg-maroon text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-maroon-dark transition text-sm">
+                + Upload PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Info banner -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p class="font-semibold mb-1">Cara kerja:</p>
+        <ol class="list-decimal pl-5 space-y-0.5 text-blue-700">
+            <li>Upload PDF (max 10 MB, harus text-based — bukan scan).</li>
+            <li>Sistem otomatis ekstrak, bersihkan noise (no halaman, header), pecah jadi chunk per BAB/Pasal.</li>
+            <li>Setiap chunk di-embed ke vektor &amp; disimpan ke database.</li>
+            <li>Saat user bertanya, chatbot cari chunk paling relevan untuk dijadikan jawaban.</li>
+        </ol>
+    </div>
+
+    <!-- Filters -->
+    <form method="GET" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">Jenis</label>
+            <select name="jenis" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-maroon">
+                <option value="">Semua Jenis</option>
+                <option value="umum" {% if jenis_filter == 'umum' %}selected{% endif %}>Umum</option>
+                <option value="pendaftaran" {% if jenis_filter == 'pendaftaran' %}selected{% endif %}>Pendaftaran</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">Status</label>
+            <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-maroon">
+                <option value="">Semua Status</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Sedang Diproses</option>
+                <option value="ready" {% if status_filter == 'ready' %}selected{% endif %}>Siap Digunakan</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Gagal</option>
+            </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs text-gray-500 mb-1">Cari Judul</label>
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Cari judul dokumen..."
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-maroon">
+        </div>
+        <button type="submit" class="px-4 py-2 bg-cream-dark text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+            Filter
+        </button>
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="table-responsive">
+            <table class="w-full text-sm">
+                <thead class="bg-maroon text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">Judul</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">Jenis</th>
+                        <th class="px-4 py-3 text-center font-semibold">Status</th>
+                        <th class="px-4 py-3 text-center font-semibold hidden md:table-cell">Chunk</th>
+                        <th class="px-4 py-3 text-center font-semibold">Aktif</th>
+                        <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Diunggah</th>
+                        <th class="px-4 py-3 text-center font-semibold">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for d in dokumen_list %}
+                    <tr class="hover:bg-cream/50 transition">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-900">{{ d.judul }}</div>
+                            {% if d.file_pdf %}
+                            <a href="{{ d.file_pdf.url }}" target="_blank"
+                               class="text-xs text-maroon hover:underline">Lihat PDF</a>
+                            {% endif %}
+                            {% if d.status == 'failed' and d.error_message %}
+                            <p class="text-xs text-red-600 mt-1">⚠️ {{ d.error_message|truncatechars:100 }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 hidden md:table-cell">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if d.jenis_chatbot == 'umum' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ d.get_jenis_chatbot_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if d.status == 'ready' %}
+                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Siap</span>
+                            {% elif d.status == 'processing' %}
+                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Diproses</span>
+                            {% elif d.status == 'failed' %}
+                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Gagal</span>
+                            {% else %}
+                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center hidden md:table-cell text-gray-600">{{ d.jumlah_chunk }}</td>
+                        <td class="px-4 py-3 text-center">
+                            {% if d.is_active %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
+                            {% else %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Nonaktif</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 hidden lg:table-cell text-gray-500">{{ d.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-2 flex-wrap">
+                                <form method="POST" action="{% url 'chatbot_admin:dokumen_toggle' d.id_dokumen %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs text-blue-600 hover:text-blue-800 font-medium transition">
+                                        {% if d.is_active %}Nonaktifkan{% else %}Aktifkan{% endif %}
+                                    </button>
+                                </form>
+                                {% if d.status == 'failed' or d.status == 'pending' %}
+                                <span class="text-gray-300">|</span>
+                                <form method="POST" action="{% url 'chatbot_admin:dokumen_reingest' d.id_dokumen %}" class="inline"
+                                      onsubmit="return confirm('Proses ulang dokumen ini? (akan memakan waktu 30-90 detik)');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs text-yellow-700 hover:text-yellow-900 font-medium transition">
+                                        Proses Ulang
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <span class="text-gray-300">|</span>
+                                <form method="POST" action="{% url 'chatbot_admin:dokumen_delete' d.id_dokumen %}"
+                                      onsubmit="return confirm('Hapus dokumen ini beserta semua chunk-nya?');" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs text-red-600 hover:text-red-800 font-medium transition">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            Belum ada dokumen pengetahuan. Klik "Upload PDF" untuk menambahkan.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "components/pagination.html" %}
+</div>
+{% endblock %}

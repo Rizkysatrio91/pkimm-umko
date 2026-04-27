@@ -99,8 +99,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # (mis. foto 50 MB atau attachment polyglot yang sangat besar).
 # DATA_UPLOAD_MAX_MEMORY_SIZE: batas total body POST (form multipart + field text)
 # FILE_UPLOAD_MAX_MEMORY_SIZE: batas ukuran per-file; di atas itu → temp file di disk
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+# Naik ke 12 MB untuk akomodasi upload PDF dokumen pengetahuan RAG (max 10 MB
+# per file + overhead form).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 # Internasionalisasi

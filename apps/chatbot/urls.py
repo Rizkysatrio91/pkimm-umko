@@ -18,4 +18,10 @@ admin_urlpatterns = [
     path('unanswered/<int:pk>/delete/', views.DeleteUnansweredView.as_view(), name='delete_unanswered'),
     path('unanswered/<int:pk>/detail/', views.UnansweredDetailView.as_view(), name='unanswered_detail'),
     path('unanswered/delete-all/', views.DeleteAllUnansweredView.as_view(), name='delete_all_unanswered'),
+    # RAG: dokumen pengetahuan PDF
+    path('dokumen/', views.DokumenListView.as_view(), name='dokumen_list'),
+    path('dokumen/upload/', views.DokumenUploadView.as_view(), name='dokumen_upload'),
+    path('dokumen/<int:pk>/toggle/', views.DokumenToggleActiveView.as_view(), name='dokumen_toggle'),
+    path('dokumen/<int:pk>/reingest/', views.DokumenReingestView.as_view(), name='dokumen_reingest'),
+    path('dokumen/<int:pk>/hapus/', views.DokumenDeleteView.as_view(), name='dokumen_delete'),
 ]

@@ -1,5 +1,6 @@
 """Views untuk app chatbot — semua CBV."""
 import json
+import logging
 
 from django.contrib import messages
 from django.db.models import Q
@@ -10,14 +11,25 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView
+from pgvector.django import CosineDistance
 
-from apps.chatbot.forms import DatasetChatbotForm
-from apps.chatbot.models import DatasetChatbot, RiwayatChat
+from apps.chatbot.forms import DatasetChatbotForm, DokumenPengetahuanForm
+from apps.chatbot.models import (
+    ChunkPengetahuan,
+    DatasetChatbot,
+    DokumenPengetahuan,
+    RiwayatChat,
+    StatusDokumen,
+)
+from apps.chatbot.services import PDFIngestService
 from core.budget_limiter import BudgetLimiter
 from core.constants import JenisChatbot
+from core.exceptions import OpenAIServiceError
 from core.mixins import AdminRequiredMixin, CalonKaderRequiredMixin
 from core.rate_limiter import RateLimiter
 from core.services import OpenAIService
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Chatbot Publik ───────────────────────────────────────────────────────
@@ -130,9 +142,67 @@ class ChatbotAPIView(View):
                 return False
         return True
 
+    # Threshold cosine distance untuk vector search RAG. CosineDistance
+    # mengembalikan nilai 0 (identik) sampai 2 (berlawanan); 0.6 ≈ similarity 0.4
+    # — di bawah ini chunk dianggap cukup relevan. Lebih ketat = lebih sedikit
+    # noise tapi bisa miss relevant chunk.
+    RAG_DISTANCE_THRESHOLD = 0.6
+    RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
+
+    def _find_matching_chunks(self, pesan: str, jenis: str) -> list:
+        """Vector search RAG: cari chunk PDF terdekat dengan pesan user.
+
+        Return list[dict] berisi teks + metadata seksi + nama dokumen.
+        Kembalikan [] kalau:
+          - Belum ada dokumen aktif
+          - OpenAI embedding error (silently fail, fallback ke keyword search)
+          - Tidak ada chunk di bawah threshold distance
+        """
+        # Cek dulu apakah ada chunk yang potensial — hindari panggil embeddings
+        # OpenAI kalau memang DB kosong.
+        has_chunks = ChunkPengetahuan.objects.filter(
+            id_dokumen__jenis_chatbot=jenis,
+            id_dokumen__is_active=True,
+            id_dokumen__status=StatusDokumen.READY,
+            embedding__isnull=False,
+        ).exists()
+        if not has_chunks:
+            return []
+
+        try:
+            service = OpenAIService()
+            query_vec = service.embed_text(pesan)
+        except OpenAIServiceError:
+            logger.exception('Gagal embed query untuk RAG, fallback ke keyword-only')
+            return []
+
+        qs = (
+            ChunkPengetahuan.objects
+            .filter(
+                id_dokumen__jenis_chatbot=jenis,
+                id_dokumen__is_active=True,
+                id_dokumen__status=StatusDokumen.READY,
+                embedding__isnull=False,
+            )
+            .annotate(distance=CosineDistance('embedding', query_vec))
+            .filter(distance__lte=self.RAG_DISTANCE_THRESHOLD)
+            .order_by('distance')
+            .select_related('id_dokumen')[:self.RAG_TOP_K]
+        )
+
+        return [
+            {
+                'teks': c.teks,
+                'seksi': c.metadata_seksi,
+                'judul_dokumen': c.id_dokumen.judul,
+                'distance': float(c.distance),
+            }
+            for c in qs
+        ]
+
     def _find_matching_datasets(self, pesan: str, jenis: str, sesi_id: str = '') -> list:
         """
-        Cari dataset yang relevan dengan pencarian FLEKSIBEL.
+        Cari dataset yang relevan dengan pencarian FLEKSIBEL (keyword-based).
 
         Metode (dari paling akurat ke paling longgar):
         1. Keyword lengkap ada di pesan → skor TINGGI
@@ -142,6 +212,9 @@ class ChatbotAPIView(View):
         Jika pesan sangat pendek (≤2 kata bermakna), konteks diperkaya dengan
         pesan user sebelumnya dari sesi yang sama — sehingga follow-up seperti
         "FTIK" setelah "siapa ketua umum IMM" tetap dapat dicocokkan.
+
+        Catatan: ini search untuk DatasetChatbot (entry manual admin). Untuk
+        pencarian PDF/RAG, lihat ``_find_matching_chunks``.
         """
         pesan_lower = pesan.strip().lower()
         kata_user = [k for k in pesan_lower.split() if k not in self.STOPWORDS and len(k) >= 2]
@@ -209,23 +282,43 @@ class ChatbotAPIView(View):
         scored.sort(key=lambda x: x[1], reverse=True)
         return [ds for ds, _ in scored]
 
-    def _build_knowledge_text(self, matching_datasets: list, jenis: str) -> str:
+    def _build_knowledge_text(
+        self,
+        matching_datasets: list,
+        matching_chunks: list,
+        jenis: str,
+    ) -> str:
         """
         Bangun teks knowledge untuk dikirim ke OpenAI.
-        Gabungkan dataset yang cocok + ringkasan semua topik.
+        Gabungkan: dataset manual (admin) + chunk RAG (PDF) + ringkasan topik.
+
+        Catatan: instruksi_ai tidak lagi dikirim ke OpenAI — system prompt
+        global di OpenAIService sudah menangani gaya jawab & batasan topik.
+        Field-nya tetap ada di DB (sesuai skripsi Tabel 3.19) tapi diabaikan.
         """
         parts = []
+        idx = 1
 
-        # Dataset yang paling relevan (maks 5 teratas)
-        for i, ds in enumerate(matching_datasets[:5]):
-            part = f"[Pengetahuan {i + 1} — topik: {ds.intent_keyword}]"
+        # 1. Chunk RAG (PDF) — biasanya lebih kaya konteks daripada dataset
+        # manual, jadi taruh di atas. Maks RAG_TOP_K (sudah dibatasi di caller).
+        for c in matching_chunks:
+            header = f"[Pengetahuan {idx} — dari dokumen: {c['judul_dokumen']}"
+            if c['seksi']:
+                header += f" / {c['seksi']}"
+            header += "]"
+            parts.append(f"{header}\n{c['teks']}")
+            idx += 1
+
+        # 2. Dataset manual (admin) — maks 5 teratas yang relevan.
+        for ds in matching_datasets[:5]:
             if ds.respon_jawaban and ds.respon_jawaban.strip():
-                part += f"\n{ds.respon_jawaban}"
-            if ds.instruksi_ai and ds.instruksi_ai.strip():
-                part += f"\nInstruksi: {ds.instruksi_ai}"
-            parts.append(part)
+                parts.append(
+                    f"[Pengetahuan {idx} — topik: {ds.intent_keyword}]\n"
+                    f"{ds.respon_jawaban}"
+                )
+                idx += 1
 
-        # Ringkasan semua dataset agar OpenAI tahu topik apa saja yang tersedia
+        # 3. Ringkasan semua dataset agar OpenAI tahu topik apa saja yang tersedia.
         all_datasets = DatasetChatbot.objects.filter(jenis_chatbot=jenis, is_active=True)
         if all_datasets.exists():
             ringkasan_lines = []
@@ -342,9 +435,13 @@ class ChatbotAPIView(View):
             self._save_chat(user, None, sesi_id, pesan, respon, True)
             return JsonResponse({'success': True, 'respon': respon})
 
-        # === LANGKAH 3: CARI DATASET YANG COCOK (dengan konteks sesi) ===
+        # === LANGKAH 3: CARI DATASET MANUAL (keyword) + CHUNK RAG (vector) ===
         matching_datasets = self._find_matching_datasets(pesan, jenis, sesi_id)
         first_match = matching_datasets[0] if matching_datasets else None
+
+        # Vector search ke chunk PDF. Kalau OpenAI embedding gagal atau belum
+        # ada dokumen → return [] (graceful fallback ke dataset manual saja).
+        matching_chunks = self._find_matching_chunks(pesan, jenis)
 
         # === LANGKAH 4: CEK BUDGET ===
         has_budget = BudgetLimiter.can_use_ai(BudgetLimiter.COST_CHATBOT)
@@ -358,9 +455,9 @@ class ChatbotAPIView(View):
                 self._save_chat(user, None, sesi_id, pesan, respon, False)
             return JsonResponse({'success': True, 'respon': respon})
 
-        # === LANGKAH 5: KIRIM KE OPENAI DENGAN KNOWLEDGE DARI DATASET ===
+        # === LANGKAH 5: KIRIM KE OPENAI DENGAN KNOWLEDGE (dataset + RAG) ===
         try:
-            knowledge = self._build_knowledge_text(matching_datasets, jenis)
+            knowledge = self._build_knowledge_text(matching_datasets, matching_chunks, jenis)
             chat_history = self._get_chat_history(sesi_id)
             service = OpenAIService()
             # Identifier opaque untuk OpenAI abuse detection (tidak kirim PII)
@@ -389,7 +486,9 @@ class ChatbotAPIView(View):
             # Semua pertanyaan yang ditolak AI (dengan template di atas) pasti
             # pertanyaan IMM yang belum ada knowledge-nya — AI sudah menolak topik
             # non-IMM dengan template berbeda ("hanya dapat membantu menjawab...").
-            should_notify = is_unanswerable and not first_match
+            # Tidak perlu notif kalau RAG sudah menyediakan chunk relevan
+            # (artinya knowledge sudah ada, AI yang gagal pakai).
+            should_notify = is_unanswerable and not first_match and not matching_chunks
 
             self._save_chat(user, first_match, sesi_id, pesan, respon, not is_unanswerable)
 
@@ -551,3 +650,117 @@ class DeleteAllUnansweredView(AdminRequiredMixin, View):
         RiwayatChat.objects.filter(is_found=False).delete()
         messages.success(request, 'Semua pertanyaan belum terjawab telah dihapus.')
         return redirect('chatbot_admin:dataset_list')
+
+
+# ─── Admin: CRUD Dokumen Pengetahuan (RAG) ────────────────────────────────
+
+class DokumenListView(AdminRequiredMixin, ListView):
+    """Daftar dokumen PDF pengetahuan untuk RAG."""
+
+    model = DokumenPengetahuan
+    template_name = 'chatbot/dokumen_list.html'
+    context_object_name = 'dokumen_list'
+    paginate_by = 10
+
+    def get_queryset(self):
+        qs = DokumenPengetahuan.objects.all()
+        jenis = self.request.GET.get('jenis')
+        status = self.request.GET.get('status')
+        search = self.request.GET.get('q')
+        if jenis:
+            qs = qs.filter(jenis_chatbot=jenis)
+        if status:
+            qs = qs.filter(status=status)
+        if search:
+            qs = qs.filter(judul__icontains=search)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['jenis_filter'] = self.request.GET.get('jenis', '')
+        ctx['status_filter'] = self.request.GET.get('status', '')
+        ctx['search_query'] = self.request.GET.get('q', '')
+        return ctx
+
+
+class DokumenUploadView(AdminRequiredMixin, View):
+    """Upload PDF baru → otomatis di-ingest (synchronous)."""
+
+    template_name = 'chatbot/dokumen_form.html'
+
+    def get(self, request):
+        form = DokumenPengetahuanForm()
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
+        form = DokumenPengetahuanForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+
+        dokumen = form.save(commit=False)
+        dokumen.created_by = request.user
+        dokumen.status = StatusDokumen.PENDING
+        dokumen.save()
+
+        # Synchronous ingest. Untuk PDF besar (~100 halaman) bisa 30-90 detik.
+        # Kalau gagal, status sudah di-set FAILED + error_message di service —
+        # kita tinggal tampilkan pesan ke admin.
+        try:
+            jumlah = PDFIngestService().ingest(dokumen)
+            messages.success(
+                request,
+                f'Dokumen berhasil di-upload & diproses ({jumlah} chunk).',
+            )
+        except OpenAIServiceError as e:
+            messages.error(
+                request,
+                f'Dokumen tersimpan tapi gagal embedding: {e}. '
+                f'Anda bisa hapus & upload ulang setelah masalah teratasi.',
+            )
+        except Exception as e:
+            logger.exception('Ingest PDF gagal')
+            messages.error(
+                request,
+                f'Dokumen tersimpan tapi gagal diproses: {e}. '
+                f'Cek format PDF (harus text-based, bukan scan).',
+            )
+        return redirect('chatbot_admin:dokumen_list')
+
+
+class DokumenToggleActiveView(AdminRequiredMixin, View):
+    """Toggle is_active untuk mengaktifkan/menonaktifkan dokumen di RAG."""
+
+    def post(self, request, pk):
+        dokumen = get_object_or_404(DokumenPengetahuan, id_dokumen=pk)
+        dokumen.is_active = not dokumen.is_active
+        dokumen.save(update_fields=['is_active', 'updated_at'])
+        status_text = 'diaktifkan' if dokumen.is_active else 'dinonaktifkan'
+        messages.success(request, f'Dokumen "{dokumen.judul}" {status_text}.')
+        return redirect('chatbot_admin:dokumen_list')
+
+
+class DokumenReingestView(AdminRequiredMixin, View):
+    """Proses ulang dokumen (kalau gagal atau ingin re-embed dengan setting baru)."""
+
+    def post(self, request, pk):
+        dokumen = get_object_or_404(DokumenPengetahuan, id_dokumen=pk)
+        try:
+            jumlah = PDFIngestService().ingest(dokumen)
+            messages.success(request, f'Dokumen berhasil diproses ulang ({jumlah} chunk).')
+        except Exception as e:
+            messages.error(request, f'Gagal proses ulang: {e}')
+        return redirect('chatbot_admin:dokumen_list')
+
+
+class DokumenDeleteView(AdminRequiredMixin, View):
+    """Hapus dokumen + file PDF + semua chunk-nya."""
+
+    def post(self, request, pk):
+        dokumen = get_object_or_404(DokumenPengetahuan, id_dokumen=pk)
+        # Hapus file fisik PDF supaya tidak menumpuk di disk.
+        if dokumen.file_pdf:
+            dokumen.file_pdf.delete(save=False)
+        # Cascade akan hapus ChunkPengetahuan otomatis (FK on_delete=CASCADE).
+        dokumen.delete()
+        messages.success(request, 'Dokumen pengetahuan berhasil dihapus.')
+        return redirect('chatbot_admin:dokumen_list')

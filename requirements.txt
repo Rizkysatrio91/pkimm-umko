@@ -12,3 +12,4 @@ xhtml2pdf
 gunicorn
 requests
 qrcode[pil]
+pgvector

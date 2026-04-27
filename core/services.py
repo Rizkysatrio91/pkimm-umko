@@ -483,10 +483,56 @@ ATURAN WAJIB:
 PENGETAHUAN DARI DATABASE:
 """
 
+    # Model embedding untuk RAG. text-embedding-3-small punya dimensi 1536
+    # (sinkron dengan VectorField di ChunkPengetahuan). Murah: ~$0.02/1M token.
+    EMBEDDING_MODEL = 'text-embedding-3-small'
+    EMBEDDING_DIMENSIONS = 1536
+
     def __init__(self):
         import openai
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_MODEL
+
+    def embed_text(self, text: str) -> list[float]:
+        """Konversi teks → vektor 1536-dim untuk vector search RAG.
+
+        Dipakai dua tempat:
+          1. Saat ingest PDF — embed setiap chunk lalu disimpan ke DB.
+          2. Saat user bertanya — embed query lalu cari chunk terdekat.
+
+        Raises OpenAIServiceError kalau API gagal (caller decide: retry / fail).
+        """
+        text = (text or '').strip()
+        if not text:
+            raise OpenAIServiceError('Teks kosong tidak bisa di-embed.')
+        try:
+            response = self.client.embeddings.create(
+                model=self.EMBEDDING_MODEL,
+                input=text,
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            logger.exception('OpenAI embeddings call failed')
+            raise OpenAIServiceError(f'Gagal membuat embedding: {e}') from e
+
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embed banyak teks sekaligus (1 request, hemat latency).
+
+        OpenAI menerima array input. Kalau salah satu teks kosong, di-skip
+        di sisi caller — di sini kita assume semua sudah valid.
+        """
+        if not texts:
+            return []
+        try:
+            response = self.client.embeddings.create(
+                model=self.EMBEDDING_MODEL,
+                input=texts,
+            )
+            # response.data sudah urut sesuai input index
+            return [item.embedding for item in response.data]
+        except Exception as e:
+            logger.exception('OpenAI batch embeddings call failed')
+            raise OpenAIServiceError(f'Gagal membuat embedding batch: {e}') from e
 
     def chat_completion(
         self,
