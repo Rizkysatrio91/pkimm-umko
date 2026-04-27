@@ -45,6 +45,18 @@ class PDFIngestService:
         re.compile(r'^\s*BAGIAN\s+[IVXLCDM\d]+', re.IGNORECASE),
     ]
 
+    # Pattern khusus dokumen AD/ART: deteksi batas antara AD dan ART supaya
+    # Pasal X di AD tidak tercampur dengan Pasal X di ART (penomoran reset).
+    # Dipakai di _split_by_section untuk memberi prefix [AD] atau [ART] di
+    # metadata_seksi.
+    ART_BOUNDARY_PATTERN = re.compile(
+        r'^\s*ANGGARAN\s+RUMAH\s+TANGGA\s*$', re.IGNORECASE,
+    )
+    BAB_NUMBER_PATTERN = re.compile(
+        r'^\s*BAB\s+([IVXLCDM]+|\d+)\b', re.IGNORECASE,
+    )
+    _ROMAN_MAP = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+
     # ─── Public API ──────────────────────────────────────────────────────
 
     def ingest(self, dokumen: DokumenPengetahuan) -> int:
@@ -242,12 +254,22 @@ class PDFIngestService:
                     chunks.append({'teks': sub, 'seksi': sec['seksi']})
         return chunks
 
+    @staticmethod
+    def _seksi_part(seksi: str) -> str:
+        """Ekstrak prefix [AD] / [ART] dari seksi. Return '' kalau tidak ada."""
+        match = re.match(r'\[(AD|ART)\]', seksi or '')
+        return match.group(1) if match else ''
+
     def _merge_short_sections(self, sections: list[dict]) -> list[dict]:
         """Gabung section pendek konsekutif sampai mencapai TARGET_CHUNK_CHARS.
 
         Mempertahankan info seksi: kalau buffer berisi multiple section,
         seksi-nya jadi "{seksi_pertama} - {seksi_terakhir}". Section yang
         sudah cukup besar (>= TARGET) di-flush sendiri tanpa digabung.
+
+        TIDAK menggabungkan section dari bagian dokumen yang berbeda
+        (mis. AD ↔ ART) supaya konten Pasal 7 di AD tidak tercampur dengan
+        Pasal 7 di ART.
         """
         if not sections:
             return []
@@ -275,6 +297,14 @@ class PDFIngestService:
                 continue
             seksi = sec.get('seksi', '')
 
+            # Jangan gabung lintas batas AD/ART. Kalau buffer berisi seksi
+            # dari part berbeda, flush dulu sebelum mulai entry baru.
+            if buf_teks:
+                buf_part = self._seksi_part(buf_seksi_last)
+                cur_part = self._seksi_part(seksi)
+                if buf_part and cur_part and buf_part != cur_part:
+                    flush()
+
             # Section yang sudah cukup besar — flush buffer dulu, lalu
             # tambahkan section ini sebagai entry sendiri.
             if len(teks) >= self.TARGET_CHUNK_CHARS:
@@ -297,16 +327,41 @@ class PDFIngestService:
         flush()
         return merged
 
+    @classmethod
+    def _roman_to_int(cls, roman: str) -> int:
+        """Konversi numeral Romawi → int. Return 0 kalau invalid."""
+        roman = roman.upper()
+        if not roman or not all(c in cls._ROMAN_MAP for c in roman):
+            return 0
+        total = 0
+        prev = 0
+        for c in reversed(roman):
+            v = cls._ROMAN_MAP[c]
+            total = total - v if v < prev else total + v
+            prev = v
+        return total
+
     def _split_by_section(self, text: str) -> list[dict]:
         """Pecah teks berdasar heading BAB/PASAL.
 
-        Menjaga heading sebagai bagian dari section berikutnya, supaya AI tahu
-        konteks-nya. Return [] kalau tidak ada heading sama sekali.
+        Khusus dokumen AD/ART: deteksi batas antara AD dan ART (penomoran
+        BAB/Pasal di-reset ke 1). Beri prefix [AD] atau [ART] di metadata
+        seksi supaya saat user bertanya "Pasal 7", AI tahu mana yang dari
+        AD (Tujuan IMM) dan mana yang dari ART (Pemberhentian Anggota).
+
+        Boundary terdeteksi dari salah satu:
+          1. Baris berisi tepat "ANGGARAN RUMAH TANGGA" (eksplisit)
+          2. Reset penomoran BAB (BAB I muncul lagi setelah BAB ≥2)
+
+        Return [] kalau tidak ada heading sama sekali.
         """
         lines = text.split('\n')
         sections: list[dict] = []
         current_seksi = ''
         current_lines: list[str] = []
+        # Track posisi dokumen: AD (default) → ART setelah boundary.
+        current_part = 'AD'
+        seen_bab_high = False  # Sudah pernah lihat BAB ≥ 2 di part ini
 
         def is_section_heading(line: str) -> bool:
             stripped = line.strip()
@@ -314,7 +369,40 @@ class PDFIngestService:
                 return False
             return any(p.match(stripped) for p in self.SECTION_PATTERNS)
 
+        def get_bab_num(line: str) -> int | None:
+            match = self.BAB_NUMBER_PATTERN.match(line)
+            if not match:
+                return None
+            token = match.group(1)
+            if token.isdigit():
+                return int(token)
+            return self._roman_to_int(token) or None
+
+        def with_prefix(seksi: str) -> str:
+            return f"[{current_part}] {seksi}" if seksi else f"[{current_part}]"
+
         for line in lines:
+            stripped = line.strip()
+
+            # Boundary 1: heading eksplisit "ANGGARAN RUMAH TANGGA"
+            if current_part == 'AD' and self.ART_BOUNDARY_PATTERN.match(stripped):
+                current_part = 'ART'
+                seen_bab_high = False
+                continue  # Skip baris boundary, jangan jadi konten
+
+            # Boundary 2: BAB I muncul lagi setelah BAB ≥ 2
+            bab_num = get_bab_num(line)
+            if bab_num is not None:
+                if (
+                    bab_num == 1
+                    and seen_bab_high
+                    and current_part == 'AD'
+                ):
+                    current_part = 'ART'
+                    seen_bab_high = False
+                elif bab_num >= 2:
+                    seen_bab_high = True
+
             if is_section_heading(line):
                 # Tutup section sebelumnya.
                 if current_lines:
@@ -322,7 +410,7 @@ class PDFIngestService:
                         'teks': '\n'.join(current_lines).strip(),
                         'seksi': current_seksi,
                     })
-                current_seksi = line.strip()[:200]
+                current_seksi = with_prefix(stripped[:200])
                 current_lines = [line]
             else:
                 current_lines.append(line)
