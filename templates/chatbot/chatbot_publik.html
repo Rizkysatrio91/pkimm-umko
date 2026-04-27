@@ -109,14 +109,33 @@
         </div>
     </div>
 
+    <!-- ====== COUNTDOWN BANNER ====== -->
+    <div x-show="rateLimited" x-cloak class="bg-amber-50 border-t border-amber-200 px-4 py-3 flex-shrink-0">
+        <div class="flex items-center gap-2 text-amber-800 mb-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-xs font-medium">
+                Batas percakapan tercapai. Silakan tunggu
+                <span class="font-bold text-amber-900" x-text="formatCountdown(countdown)"></span>
+                untuk melanjutkan.
+            </p>
+        </div>
+        <div class="h-1.5 bg-amber-200 rounded-full overflow-hidden">
+            <div class="h-full bg-amber-500 rounded-full transition-all duration-1000"
+                 :style="`width: ${initialCountdown > 0 ? (countdown / initialCountdown) * 100 : 0}%`"></div>
+        </div>
+    </div>
+
     <!-- ====== INPUT AREA ====== -->
     <div class="bg-white border-t border-gray-100 px-4 py-3 flex-shrink-0">
         <form @submit.prevent="sendMessage(inputText)" class="flex items-center gap-2">
             <input type="text" x-model="inputText"
                    placeholder="Tanya seputar ke-IMM-an..."
-                   :disabled="loading"
+                   :disabled="loading || rateLimited"
+                   :class="rateLimited ? 'opacity-50 cursor-not-allowed' : ''"
                    class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition text-sm outline-none">
-            <button type="submit" :disabled="loading || !inputText.trim()"
+            <button type="submit" :disabled="loading || rateLimited || !inputText.trim()"
                     class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -136,6 +155,10 @@ function chatbot() {
         messages: [],
         inputText: '',
         loading: false,
+        rateLimited: false,
+        countdown: 0,
+        initialCountdown: 0,
+        countdownTimer: null,
         sesiId: (typeof crypto !== 'undefined' && crypto.randomUUID)
             ? crypto.randomUUID()
             : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -149,8 +172,30 @@ function chatbot() {
             });
         },
 
+        formatCountdown(secs) {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return m > 0 ? `${m} menit ${s} detik` : `${s} detik`;
+        },
+
+        startCountdown(seconds) {
+            if (this.countdownTimer) clearInterval(this.countdownTimer);
+            this.rateLimited = true;
+            this.countdown = seconds;
+            this.initialCountdown = seconds;
+            this.countdownTimer = setInterval(() => {
+                this.countdown--;
+                if (this.countdown <= 0) {
+                    clearInterval(this.countdownTimer);
+                    this.countdownTimer = null;
+                    this.rateLimited = false;
+                    this.countdown = 0;
+                }
+            }, 1000);
+        },
+
         async sendMessage(text) {
-            if (!text || !text.trim()) return;
+            if (!text || !text.trim() || this.rateLimited) return;
             const pesan = text.trim();
             this.inputText = '';
             this.messages.push({ role: 'user', content: pesan });
@@ -170,6 +215,9 @@ function chatbot() {
                 const data = await resp.json();
                 if (data.success) {
                     this.messages.push({ role: 'bot', content: data.respon });
+                    if (data.rate_limited && data.retry_seconds) {
+                        this.startCountdown(data.retry_seconds);
+                    }
                 } else {
                     this.messages.push({ role: 'bot', content: data.error || 'Terjadi kesalahan.' });
                 }

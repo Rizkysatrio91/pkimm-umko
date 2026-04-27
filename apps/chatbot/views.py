@@ -334,7 +334,7 @@ class ChatbotAPIView(View):
         is_limited, limit_msg, retry_seconds = RateLimiter.check_chatbot_limit(request, jenis)
         if is_limited:
             respon = f"{limit_msg} Terima kasih atas pengertiannya!"
-            return JsonResponse({'success': True, 'respon': respon})
+            return JsonResponse({'success': True, 'respon': respon, 'rate_limited': True, 'retry_seconds': retry_seconds})
 
         # === LANGKAH 2: SAPAAN → GRATIS (tanpa OpenAI) ===
         if self._is_sapaan(pesan):
