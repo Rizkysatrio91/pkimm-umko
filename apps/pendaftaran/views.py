@@ -275,9 +275,8 @@ class AdminDashboardView(AdminRequiredMixin, View):
         # 1. Kader resmi — sudah lulus DAD, jabatan bukan 'calon'
         total_kader = BiodataKader.objects.exclude(jabatan_struktural='calon').count()
 
-        # 2. Calon kader terdaftar — HANYA yang masih berstatus 'calon'
-        #    Jumlahnya berkurang otomatis setelah penetapan kelulusan
-        total_calon = BiodataKader.objects.filter(jabatan_struktural='calon').count()
+        # 2. Calon kader terdaftar — akun User aktif dengan role calon_kader
+        total_calon = User.objects.filter(role=UserRole.CALON_KADER).count()
 
         # 3. Pendaftar DAD aktif — hanya yang belum ditentukan kelulusannya
         total_pendaftar = PendaftaranDAD.objects.filter(
