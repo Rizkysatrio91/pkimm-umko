@@ -69,8 +69,8 @@ class LaporanService:
         cls._replace(doc, '{{CATATAN_LAPORAN}}',  '')
         ketua = BiodataKader.objects.filter(jabatan_struktural='ketua_umum').first()
         sekretaris = BiodataKader.objects.filter(jabatan_struktural='sekretaris_umum').first()
-        cls._replace(doc, '{{NAMA_KETUA}}',       ketua.nama_lengkap.upper() if ketua else '________________________')
-        cls._replace(doc, '{{NAMA_SEKRETARIS}}',  sekretaris.nama_lengkap.upper() if sekretaris else '________________________')
+        cls._replace(doc, '{{NAMA_KETUA}}',       ketua.nama_lengkap.title() if ketua else '________________________')
+        cls._replace(doc, '{{NAMA_SEKRETARIS}}',  sekretaris.nama_lengkap.title() if sekretaris else '________________________')
 
     # ══════════════════════════════════════════════════════════════
     # Helper tabel
@@ -790,6 +790,11 @@ class LaporanService:
         cls._replace(doc, '{{TOTAL_KADER}}',      '-')
         cls._replace(doc, '{{TOTAL_AKTIF}}',      '-')
         cls._replace(doc, '{{TOTAL_NONAKTIF}}',   '-')
+        from apps.kader.models import BiodataKader
+        ketua = BiodataKader.objects.filter(jabatan_struktural='ketua_umum').first()
+        sekretaris = BiodataKader.objects.filter(jabatan_struktural='sekretaris_umum').first()
+        cls._replace(doc, '{{NAMA_KETUA}}',      ketua.nama_lengkap.title() if ketua else '________________________')
+        cls._replace(doc, '{{NAMA_SEKRETARIS}}', sekretaris.nama_lengkap.title() if sekretaris else '________________________')
 
         rekap_section_titles = {'DATA KADER', 'DATA PENDAFTAR DAD', 'DATA KELULUSAN DAD'}
         paragraphs_to_remove = []
