@@ -30,6 +30,11 @@ class PDFIngestService:
     # (1 token ≈ 3-4 char untuk bahasa Indonesia).
     MAX_CHUNK_CHARS = 1500
     MIN_CHUNK_CHARS = 80  # chunk lebih pendek dari ini di-skip (terlalu noise)
+    # Target ukuran chunk setelah merge — Pasal pendek (1-2 kalimat) digabung
+    # hingga mencapai ukuran ini, supaya konteks-nya lebih kaya untuk vector
+    # search. Tanpa merge, dokumen AD/ART jadi banyak chunk pendek (<200 char)
+    # yang sulit di-match dengan embedding query pendek.
+    TARGET_CHUNK_CHARS = 600
 
     # Regex section heading khas dokumen organisasi (AD/ART, panduan, dll).
     SECTION_PATTERNS = [
@@ -207,14 +212,20 @@ class PDFIngestService:
         """Section-aware chunking. Return list[{'teks': ..., 'seksi': ...}].
 
         Strategi:
-          1. Coba split per BAB / PASAL — ini paling natural untuk dokumen IMM
-          2. Kalau section terlalu panjang, split lagi per paragraf
-          3. Kalau dokumen tidak punya section sama sekali, fallback ke
-             sliding window berdasar paragraf.
+          1. Split per BAB / PASAL (paling natural untuk dokumen IMM)
+          2. Gabung Pasal-pasal pendek konsekutif jadi chunk yang lebih kaya
+             konteks (target ~TARGET_CHUNK_CHARS) — penting untuk akurasi
+             vector search saat query user pendek
+          3. Kalau section panjang, split per paragraf
+          4. Kalau dokumen tidak punya section, fallback ke split paragraf
         """
         sections = self._split_by_section(full_text)
         if not sections:
             sections = [{'teks': full_text, 'seksi': ''}]
+
+        # Gabung section pendek (mis. tiap Pasal yg cuma 1-2 kalimat) supaya
+        # konteks tiap chunk cukup kaya untuk vector search.
+        sections = self._merge_short_sections(sections)
 
         chunks = []
         for sec in sections:
@@ -230,6 +241,61 @@ class PDFIngestService:
                 if len(sub) >= self.MIN_CHUNK_CHARS:
                     chunks.append({'teks': sub, 'seksi': sec['seksi']})
         return chunks
+
+    def _merge_short_sections(self, sections: list[dict]) -> list[dict]:
+        """Gabung section pendek konsekutif sampai mencapai TARGET_CHUNK_CHARS.
+
+        Mempertahankan info seksi: kalau buffer berisi multiple section,
+        seksi-nya jadi "{seksi_pertama} - {seksi_terakhir}". Section yang
+        sudah cukup besar (>= TARGET) di-flush sendiri tanpa digabung.
+        """
+        if not sections:
+            return []
+
+        merged: list[dict] = []
+        buf_teks = ''
+        buf_seksi_first = ''
+        buf_seksi_last = ''
+
+        def flush() -> None:
+            nonlocal buf_teks, buf_seksi_first, buf_seksi_last
+            if not buf_teks:
+                return
+            seksi = buf_seksi_first
+            if buf_seksi_last and buf_seksi_last != buf_seksi_first:
+                seksi = f"{buf_seksi_first} – {buf_seksi_last}"
+            merged.append({'teks': buf_teks, 'seksi': seksi})
+            buf_teks = ''
+            buf_seksi_first = ''
+            buf_seksi_last = ''
+
+        for sec in sections:
+            teks = sec['teks'].strip()
+            if not teks:
+                continue
+            seksi = sec.get('seksi', '')
+
+            # Section yang sudah cukup besar — flush buffer dulu, lalu
+            # tambahkan section ini sebagai entry sendiri.
+            if len(teks) >= self.TARGET_CHUNK_CHARS:
+                flush()
+                merged.append({'teks': teks, 'seksi': seksi})
+                continue
+
+            # Section pendek — append ke buffer.
+            if not buf_teks:
+                buf_teks = teks
+                buf_seksi_first = seksi
+                buf_seksi_last = seksi
+            else:
+                buf_teks = f"{buf_teks}\n\n{teks}"
+                buf_seksi_last = seksi
+
+            if len(buf_teks) >= self.TARGET_CHUNK_CHARS:
+                flush()
+
+        flush()
+        return merged
 
     def _split_by_section(self, text: str) -> list[dict]:
         """Pecah teks berdasar heading BAB/PASAL.

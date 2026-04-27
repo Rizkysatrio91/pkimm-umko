@@ -125,10 +125,10 @@
                                         {% if d.is_active %}Nonaktifkan{% else %}Aktifkan{% endif %}
                                     </button>
                                 </form>
-                                {% if d.status == 'failed' or d.status == 'pending' %}
+                                {% if d.status != 'processing' %}
                                 <span class="text-gray-300">|</span>
                                 <form method="POST" action="{% url 'chatbot_admin:dokumen_reingest' d.id_dokumen %}" class="inline"
-                                      onsubmit="return confirm('Proses ulang dokumen ini? (akan memakan waktu 30-90 detik)');">
+                                      onsubmit="return confirm('Proses ulang dokumen ini? Chunk lama akan dihapus & diganti yang baru. Memakan waktu 30-90 detik.');">
                                     {% csrf_token %}
                                     <button type="submit" class="text-xs text-yellow-700 hover:text-yellow-900 font-medium transition">
                                         Proses Ulang

@@ -1,6 +1,7 @@
 """Views untuk app chatbot — semua CBV."""
 import json
 import logging
+import re
 
 from django.contrib import messages
 from django.db.models import Q
@@ -143,62 +144,94 @@ class ChatbotAPIView(View):
         return True
 
     # Threshold cosine distance untuk vector search RAG. CosineDistance
-    # mengembalikan nilai 0 (identik) sampai 2 (berlawanan); 0.6 ≈ similarity 0.4
-    # — di bawah ini chunk dianggap cukup relevan. Lebih ketat = lebih sedikit
-    # noise tapi bisa miss relevant chunk.
-    RAG_DISTANCE_THRESHOLD = 0.6
+    # = 1 - cos_similarity, range 0 (identik) – 2 (berlawanan).
+    # 0.8 ≈ similarity 0.2 — relatif longgar, tapi karena top-K terbatas
+    # dan AI tetap filter di akhir, false positive minim. Threshold ketat
+    # (0.5-0.6) sering miss query pendek seperti "pasal 7".
+    RAG_DISTANCE_THRESHOLD = 0.8
     RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
 
-    def _find_matching_chunks(self, pesan: str, jenis: str) -> list:
-        """Vector search RAG: cari chunk PDF terdekat dengan pesan user.
+    # Regex untuk deteksi pertanyaan spesifik tentang Pasal/BAB tertentu.
+    # Saat user tanya "pasal 7", keyword-match jauh lebih reliable daripada
+    # vector search yang cenderung ngeluarkan distance >0.5 untuk query pendek.
+    PASAL_REGEX = re.compile(r'\bpasal\s+(\d+)', re.IGNORECASE)
+    BAB_REGEX = re.compile(r'\bbab\s+([ivxlcdm\d]+)', re.IGNORECASE)
 
-        Return list[dict] berisi teks + metadata seksi + nama dokumen.
-        Kembalikan [] kalau:
-          - Belum ada dokumen aktif
-          - OpenAI embedding error (silently fail, fallback ke keyword search)
-          - Tidak ada chunk di bawah threshold distance
+    def _find_matching_chunks(self, pesan: str, jenis: str) -> list:
+        """Hybrid search RAG: keyword (pasal/bab) + vector (semantic).
+
+        Strategi:
+          1. Keyword match dulu — kalau user tanya "pasal 7" / "bab III",
+             cari chunk yang teks/metadata-nya berisi pattern tersebut.
+             Ini recall TINGGI untuk pertanyaan eksplisit.
+          2. Vector search untuk pertanyaan natural / konseptual.
+          3. Dedupe by id_chunk — keyword diprioritaskan (distance=0).
+
+        Return list[dict] (teks, seksi, judul_dokumen, distance).
         """
-        # Cek dulu apakah ada chunk yang potensial — hindari panggil embeddings
-        # OpenAI kalau memang DB kosong.
-        has_chunks = ChunkPengetahuan.objects.filter(
+        base_qs = ChunkPengetahuan.objects.filter(
             id_dokumen__jenis_chatbot=jenis,
             id_dokumen__is_active=True,
             id_dokumen__status=StatusDokumen.READY,
-            embedding__isnull=False,
-        ).exists()
-        if not has_chunks:
+        ).select_related('id_dokumen')
+
+        if not base_qs.exists():
             return []
 
-        try:
-            service = OpenAIService()
-            query_vec = service.embed_text(pesan)
-        except OpenAIServiceError:
-            logger.exception('Gagal embed query untuk RAG, fallback ke keyword-only')
-            return []
+        results: list[dict] = []
+        seen_ids: set[int] = set()
 
-        qs = (
-            ChunkPengetahuan.objects
-            .filter(
-                id_dokumen__jenis_chatbot=jenis,
-                id_dokumen__is_active=True,
-                id_dokumen__status=StatusDokumen.READY,
-                embedding__isnull=False,
-            )
-            .annotate(distance=CosineDistance('embedding', query_vec))
-            .filter(distance__lte=self.RAG_DISTANCE_THRESHOLD)
-            .order_by('distance')
-            .select_related('id_dokumen')[:self.RAG_TOP_K]
-        )
+        def _push(chunk: ChunkPengetahuan, distance: float) -> None:
+            if chunk.id_chunk in seen_ids:
+                return
+            results.append({
+                'teks': chunk.teks,
+                'seksi': chunk.metadata_seksi,
+                'judul_dokumen': chunk.id_dokumen.judul,
+                'distance': distance,
+            })
+            seen_ids.add(chunk.id_chunk)
 
-        return [
-            {
-                'teks': c.teks,
-                'seksi': c.metadata_seksi,
-                'judul_dokumen': c.id_dokumen.judul,
-                'distance': float(c.distance),
-            }
-            for c in qs
-        ]
+        # === Step 1: keyword search untuk "pasal X" / "bab X" ===
+        # iregex diperlukan agar boundary `\b` dievaluasi PostgreSQL.
+        pasal_match = self.PASAL_REGEX.search(pesan)
+        if pasal_match:
+            pasal_num = pasal_match.group(1)
+            pattern = rf'\bpasal\s+{re.escape(pasal_num)}\b'
+            for c in base_qs.filter(
+                Q(teks__iregex=pattern) | Q(metadata_seksi__iregex=pattern),
+            )[:3]:
+                _push(c, 0.0)
+
+        bab_match = self.BAB_REGEX.search(pesan)
+        if bab_match:
+            bab_num = bab_match.group(1)
+            pattern = rf'\bbab\s+{re.escape(bab_num)}\b'
+            for c in base_qs.filter(
+                Q(teks__iregex=pattern) | Q(metadata_seksi__iregex=pattern),
+            )[:3]:
+                _push(c, 0.0)
+
+        # === Step 2: vector search untuk semantic similarity ===
+        has_embeddings = base_qs.filter(embedding__isnull=False).exists()
+        if has_embeddings:
+            try:
+                query_vec = OpenAIService().embed_text(pesan)
+                vector_qs = (
+                    base_qs.filter(embedding__isnull=False)
+                    .annotate(distance=CosineDistance('embedding', query_vec))
+                    .filter(distance__lte=self.RAG_DISTANCE_THRESHOLD)
+                    .order_by('distance')
+                    [:self.RAG_TOP_K]
+                )
+                for c in vector_qs:
+                    _push(c, float(c.distance))
+            except OpenAIServiceError:
+                logger.exception('Gagal embed query untuk RAG; pakai keyword saja')
+
+        # Cap total hasil — keyword + vector. Cukup untuk konteks AI tanpa
+        # membuat prompt terlalu panjang.
+        return results[:self.RAG_TOP_K + 3]
 
     def _find_matching_datasets(self, pesan: str, jenis: str, sesi_id: str = '') -> list:
         """
