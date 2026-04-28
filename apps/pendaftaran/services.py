@@ -253,6 +253,13 @@ class AbsensiService:
             except IntegrityError:
                 return {'success': False, 'message': 'Anda sudah absen untuk sesi ini.', 'materi': None}
 
+        # Sinkronkan ulang poin kedisiplinan kalau NilaiAktivitas hari tsb sudah
+        # ada — supaya kalau panitia input keaktifan/kontribusi DULU lalu peserta
+        # absen sesi tertunda, skor harian otomatis update tanpa intervensi.
+        # Import di sini (bukan di top) untuk hindari circular import.
+        from apps.penilaian.services import AktivitasService
+        AktivitasService.sinkron_poin_kedisiplinan_untuk_sesi(qr.id_rundown, pendaftaran)
+
         return {
             'success': True,
             'message': f'Absensi berhasil! Sesi: {qr.id_rundown.materi}',
