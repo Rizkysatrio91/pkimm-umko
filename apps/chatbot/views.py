@@ -213,6 +213,12 @@ class ChatbotAPIView(View):
                 _push(c, 0.0)
 
         # === Step 2: vector search untuk semantic similarity ===
+        # Strategi 2 lapis:
+        #   (a) Filter dengan threshold ketat → ambil yang sangat relevan
+        #   (b) Kalau (a) kurang dari 2 chunk DAN keyword search juga kosong,
+        #       fallback paksa ambil top-3 terdekat tanpa threshold supaya
+        #       pertanyaan natural ("apa kewajiban anggota") tetap dapat
+        #       konteks meski phrasing-nya beda jauh dari teks di PDF.
         has_embeddings = base_qs.filter(embedding__isnull=False).exists()
         if has_embeddings:
             try:
@@ -220,12 +226,19 @@ class ChatbotAPIView(View):
                 vector_qs = (
                     base_qs.filter(embedding__isnull=False)
                     .annotate(distance=CosineDistance('embedding', query_vec))
-                    .filter(distance__lte=self.RAG_DISTANCE_THRESHOLD)
                     .order_by('distance')
-                    [:self.RAG_TOP_K]
                 )
-                for c in vector_qs:
+                # (a) hasil dalam threshold
+                tight = list(vector_qs.filter(
+                    distance__lte=self.RAG_DISTANCE_THRESHOLD,
+                )[:self.RAG_TOP_K])
+                for c in tight:
                     _push(c, float(c.distance))
+
+                # (b) fallback kalau hasil sangat sedikit & belum ada keyword hits
+                if len(results) < 2:
+                    for c in list(vector_qs[:3]):
+                        _push(c, float(c.distance))
             except OpenAIServiceError:
                 logger.exception('Gagal embed query untuk RAG; pakai keyword saja')
 
@@ -331,6 +344,22 @@ class ChatbotAPIView(View):
         """
         parts = []
         idx = 1
+
+        # Instruksi eksplisit ke AI — tanpa ini, system prompt utama (yang
+        # ketat) kadang membuat AI menolak meski chunk RELEVAN sudah dikirim,
+        # dengan alasan "belum spesifik". Header ini memastikan AI memprioritaskan
+        # konten dari knowledge base resmi.
+        if matching_chunks or matching_datasets:
+            parts.append(
+                "[INSTRUKSI PRIORITAS]\n"
+                "Konten di bawah ini berasal dari knowledge base RESMI PK IMM "
+                "(dokumen yang sudah di-upload admin & dataset terverifikasi). "
+                "Jika ada bagian yang relevan dengan pertanyaan user, GUNAKAN "
+                "sebagai dasar jawaban langsung dengan mengutip isinya. "
+                "JANGAN tolak dengan kalimat 'belum memiliki informasi' selama "
+                "konten yang relevan tersedia di sini. Kutip nomor pasal / "
+                "BAB persis seperti tertulis (contoh: 'Pasal 7 AD/ART menyatakan...')."
+            )
 
         # 1. Chunk RAG (PDF) — biasanya lebih kaya konteks daripada dataset
         # manual, jadi taruh di atas. Maks RAG_TOP_K (sudah dibatasi di caller).
