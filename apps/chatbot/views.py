@@ -145,12 +145,14 @@ class ChatbotAPIView(View):
 
     # Threshold cosine distance untuk vector search RAG. CosineDistance
     # = 1 - cos_similarity, range 0 (identik) – 2 (berlawanan).
-    # Distance ≤ 0.5 = Cosine Similarity ≥ 0.5 (50% mirip).
-    # Threshold 0.8 sebelumnya terlalu longgar (similarity 20%) sehingga chunk
-    # tidak relevan masuk dan menyebabkan model menjawab dari konteks yang salah.
-    # Pasal/BAB sudah ditangani keyword search (distance=0.0) sehingga tidak perlu
-    # threshold longgar untuk menangkap query eksplisit tersebut.
-    RAG_DISTANCE_THRESHOLD = 0.5
+    # Distance ≤ 0.55 = Cosine Similarity ≥ 0.45.
+    # 0.8 sebelumnya terlalu longgar (similarity 20%) → chunk tidak relevan masuk.
+    # 0.5 terlalu ketat untuk query pendek seperti "pasal 7" (short query vs
+    # long chunk text → similarity rendah). 0.55 adalah keseimbangan: cukup ketat
+    # untuk menolak noise, cukup longgar untuk query pendek berbasis dokumen.
+    # Pasal/BAB eksplisit ditangani keyword search (distance=0.0) — ini untuk
+    # query semantik seperti "apa tujuan IMM" atau "syarat menjadi anggota".
+    RAG_DISTANCE_THRESHOLD = 0.55
     RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
 
     # Regex untuk deteksi pertanyaan spesifik tentang Pasal/BAB tertentu.
@@ -195,24 +197,38 @@ class ChatbotAPIView(View):
             seen_ids.add(chunk.id_chunk)
 
         # === Step 1: keyword search untuk "pasal X" / "bab X" ===
-        # iregex diperlukan agar boundary `\b` dievaluasi PostgreSQL.
+        # PENTING: PostgreSQL iregex menggunakan POSIX regex yang TIDAK mendukung
+        # \b (word boundary). Solusi: gunakan icontains untuk DB query lalu
+        # filter Python-side dengan re (yang mendukung \b dengan benar).
         pasal_match = self.PASAL_REGEX.search(pesan)
         if pasal_match:
             pasal_num = pasal_match.group(1)
-            pattern = rf'\bpasal\s+{re.escape(pasal_num)}\b'
-            for c in base_qs.filter(
-                Q(teks__iregex=pattern) | Q(metadata_seksi__iregex=pattern),
-            )[:3]:
-                _push(c, 0.0)
+            exact_pasal = re.compile(
+                rf'\bpasal\s+{re.escape(pasal_num)}\b', re.IGNORECASE
+            )
+            # icontains: cepat, safe di PostgreSQL
+            candidates = base_qs.filter(
+                Q(teks__icontains=f'pasal {pasal_num}') |
+                Q(metadata_seksi__icontains=f'pasal {pasal_num}')
+            ).order_by('id_chunk')[:20]
+            for c in candidates:
+                # Python-side: pastikan presisi (hindari "pasal 7" match "pasal 71")
+                if exact_pasal.search(c.teks) or exact_pasal.search(c.metadata_seksi or ''):
+                    _push(c, 0.0)
 
         bab_match = self.BAB_REGEX.search(pesan)
         if bab_match:
             bab_num = bab_match.group(1)
-            pattern = rf'\bbab\s+{re.escape(bab_num)}\b'
-            for c in base_qs.filter(
-                Q(teks__iregex=pattern) | Q(metadata_seksi__iregex=pattern),
-            )[:3]:
-                _push(c, 0.0)
+            exact_bab = re.compile(
+                rf'\bbab\s+{re.escape(bab_num)}\b', re.IGNORECASE
+            )
+            candidates = base_qs.filter(
+                Q(teks__icontains=f'bab {bab_num}') |
+                Q(metadata_seksi__icontains=f'bab {bab_num}')
+            ).order_by('id_chunk')[:20]
+            for c in candidates:
+                if exact_bab.search(c.teks) or exact_bab.search(c.metadata_seksi or ''):
+                    _push(c, 0.0)
 
         # === Step 2: vector search untuk semantic similarity ===
         # Strategi 2 lapis:
@@ -237,13 +253,13 @@ class ChatbotAPIView(View):
                 for c in tight:
                     _push(c, float(c.distance))
 
-                # (b) Fallback hanya kalau BENAR-BENAR kosong (0 hasil) dan tidak
-                # ada keyword match. Ambil top-1 saja agar tidak memasukkan terlalu
-                # banyak noise. Batas distance 0.7 agar chunk yang jauh sekali
-                # (similarity < 30%) tidak dipaksakan masuk dan menyesatkan model.
-                no_keyword_hit = not (pasal_match or bab_match)
-                if len(results) == 0 and no_keyword_hit:
-                    top_fallback = list(vector_qs[:1])
+                # (b) Fallback: aktif kalau results masih kosong setelah
+                # keyword + vector search. Cek hasil AKTUAL (bukan pola query)
+                # karena keyword search bisa saja tidak menemukan apapun meski
+                # pola pasal/bab terdeteksi (misal: nomor pasal tidak ada di KB).
+                keyword_found = any(r['distance'] == 0.0 for r in results)
+                if len(results) == 0 or (not keyword_found and len(results) < 2):
+                    top_fallback = list(vector_qs[:2])
                     for c in top_fallback:
                         if float(c.distance) < 0.7:
                             _push(c, float(c.distance))
