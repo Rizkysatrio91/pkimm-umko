@@ -369,6 +369,14 @@ Kamu hanya menjawab pertanyaan yang berkaitan dengan organisasi IMM.
 
 ---
 
+## LARANGAN MUTLAK — ANTI-HALUSINASI (PRIORITAS TERTINGGI)
+- DILARANG KERAS menggunakan informasi dari pengetahuan umum AI (training data).
+- DILARANG mengarang, mengasumsikan, atau memperkirakan fakta organisasi.
+- HANYA gunakan informasi yang SECARA EKSPLISIT tersedia di bagian "PENGETAHUAN DARI DATABASE" di bawah ini.
+- Jika informasi TIDAK ADA di knowledge base, WAJIB gunakan respons tidak tahu — bukan menjawab dari asumsi.
+
+---
+
 ## ATURAN UTAMA (WAJIB DIPATUHI)
 
 ### 1. BATASAN TOPIK
@@ -472,13 +480,16 @@ PENGETAHUAN DARI DATABASE:
 
     SYSTEM_PROMPT_PENDAFTARAN = """Kamu adalah Asisten Pendaftaran DAD PK IMM FTIK UMKO.
 
+LARANGAN MUTLAK:
+- DILARANG KERAS menjawab dari pengetahuan umum AI atau asumsi sendiri.
+- HANYA gunakan informasi yang ADA di bagian PENGETAHUAN DARI DATABASE di bawah ini.
+- Jika tidak ada informasi relevan di knowledge base, katakan: "Mohon maaf, saya belum memiliki informasi tentang hal tersebut."
+
 ATURAN WAJIB:
-1. Jawab pertanyaan BERDASARKAN pengetahuan yang diberikan di bawah ini. Pengetahuan ini adalah DATABASE RESMI dari PK IMM FTIK UMKO tentang pendaftaran DAD.
-2. Jika ada pengetahuan yang relevan di bawah, GUNAKAN sebagai dasar jawaban. Boleh tambahkan penjelasan detail agar natural.
-3. Jika pertanyaan di luar pendaftaran tapi masih bisa dijawab, jawab singkat lalu arahkan ke pendaftaran DAD.
-4. Jika benar-benar tidak bisa jawab, katakan: "Mohon maaf, saya belum memiliki pengetahuan tentang hal tersebut."
-5. Jawab NATURAL dan RAMAH.
-6. JANGAN mengarang informasi pendaftaran yang tidak ada di pengetahuan.
+1. Jawab BERDASARKAN pengetahuan resmi di bawah — jangan tambahkan fakta yang tidak tertulis di sana.
+2. Jika pertanyaan di luar pendaftaran, jawab singkat lalu arahkan ke topik pendaftaran DAD.
+3. Jawab NATURAL, RAMAH, dan RINGKAS.
+4. Kutip informasi apa adanya sesuai knowledge base — jangan modifikasi fakta.
 
 PENGETAHUAN DARI DATABASE:
 """
@@ -698,12 +709,23 @@ Tugas Anda: menyunting naskah berita HTML berikut sesuai 5 ATURAN MUTLAK di bawa
         if knowledge and knowledge.strip():
             full_system = base_prompt + "\n" + knowledge
         else:
-            full_system = base_prompt + "\n(Tidak ada pengetahuan spesifik di database untuk pertanyaan ini. Jawab berdasarkan pengetahuan umummu tentang IMM, atau katakan belum memiliki pengetahuan jika tidak tahu.)"
+            # Tidak ada knowledge — JANGAN izinkan jawab dari pengetahuan umum AI
+            # karena akan menyebabkan halusinasi data organisasi yang tidak valid.
+            full_system = (
+                base_prompt
+                + "\n[KNOWLEDGE BASE KOSONG UNTUK PERTANYAAN INI]\n"
+                "WAJIB jawab dengan template berikut dan JANGAN tambahkan informasi apapun:\n"
+                "'Maaf, saya belum memiliki informasi mengenai hal tersebut saat ini. "
+                "Pertanyaan Anda akan kami sampaikan kepada admin agar informasi terkait "
+                "dapat segera ditambahkan.'"
+            )
 
         messages = [{"role": "system", "content": full_system}]
 
+        # Batasi riwayat ke 4 pesan terakhir (2 exchange) — cukup untuk konteks
+        # tanpa mengencerkan instruksi system prompt yang panjang.
         if chat_history:
-            messages.extend(chat_history[-6:])
+            messages.extend(chat_history[-4:])
 
         messages.append({"role": "user", "content": user_message})
 
@@ -711,7 +733,9 @@ Tugas Anda: menyunting naskah berita HTML berikut sesuai 5 ATURAN MUTLAK di bawa
             'model': self.model,
             'messages': messages,
             'max_tokens': 800,
-            'temperature': 0.7,
+            # Temperature rendah (0.2) untuk RAG faktual: konsisten, tidak mengarang.
+            # 0.7 terlalu tinggi — menyebabkan jawaban bervariasi dan halusinasi.
+            'temperature': 0.2,
         }
         if user_id:
             kwargs['user'] = user_id

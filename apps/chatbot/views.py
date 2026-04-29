@@ -145,10 +145,12 @@ class ChatbotAPIView(View):
 
     # Threshold cosine distance untuk vector search RAG. CosineDistance
     # = 1 - cos_similarity, range 0 (identik) – 2 (berlawanan).
-    # 0.8 ≈ similarity 0.2 — relatif longgar, tapi karena top-K terbatas
-    # dan AI tetap filter di akhir, false positive minim. Threshold ketat
-    # (0.5-0.6) sering miss query pendek seperti "pasal 7".
-    RAG_DISTANCE_THRESHOLD = 0.8
+    # Distance ≤ 0.5 = Cosine Similarity ≥ 0.5 (50% mirip).
+    # Threshold 0.8 sebelumnya terlalu longgar (similarity 20%) sehingga chunk
+    # tidak relevan masuk dan menyebabkan model menjawab dari konteks yang salah.
+    # Pasal/BAB sudah ditangani keyword search (distance=0.0) sehingga tidak perlu
+    # threshold longgar untuk menangkap query eksplisit tersebut.
+    RAG_DISTANCE_THRESHOLD = 0.5
     RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
 
     # Regex untuk deteksi pertanyaan spesifik tentang Pasal/BAB tertentu.
@@ -235,10 +237,16 @@ class ChatbotAPIView(View):
                 for c in tight:
                     _push(c, float(c.distance))
 
-                # (b) fallback kalau hasil sangat sedikit & belum ada keyword hits
-                if len(results) < 2:
-                    for c in list(vector_qs[:3]):
-                        _push(c, float(c.distance))
+                # (b) Fallback hanya kalau BENAR-BENAR kosong (0 hasil) dan tidak
+                # ada keyword match. Ambil top-1 saja agar tidak memasukkan terlalu
+                # banyak noise. Batas distance 0.7 agar chunk yang jauh sekali
+                # (similarity < 30%) tidak dipaksakan masuk dan menyesatkan model.
+                no_keyword_hit = not (pasal_match or bab_match)
+                if len(results) == 0 and no_keyword_hit:
+                    top_fallback = list(vector_qs[:1])
+                    for c in top_fallback:
+                        if float(c.distance) < 0.7:
+                            _push(c, float(c.distance))
             except OpenAIServiceError:
                 logger.exception('Gagal embed query untuk RAG; pakai keyword saja')
 
@@ -351,14 +359,17 @@ class ChatbotAPIView(View):
         # konten dari knowledge base resmi.
         if matching_chunks or matching_datasets:
             parts.append(
-                "[INSTRUKSI PRIORITAS]\n"
+                "[INSTRUKSI PENGGUNAAN KNOWLEDGE BASE]\n"
                 "Konten di bawah ini berasal dari knowledge base RESMI PK IMM "
-                "(dokumen yang sudah di-upload admin & dataset terverifikasi). "
-                "Jika ada bagian yang relevan dengan pertanyaan user, GUNAKAN "
-                "sebagai dasar jawaban langsung dengan mengutip isinya. "
-                "JANGAN tolak dengan kalimat 'belum memiliki informasi' selama "
-                "konten yang relevan tersedia di sini. Kutip nomor pasal / "
-                "BAB persis seperti tertulis (contoh: 'Pasal 7 AD/ART menyatakan...')."
+                "(dokumen yang sudah di-upload admin & dataset terverifikasi).\n"
+                "ATURAN:\n"
+                "1. Jika ada bagian yang relevan dengan pertanyaan user, GUNAKAN "
+                "sebagai dasar jawaban dan kutip isinya secara akurat.\n"
+                "2. Kutip nomor pasal/BAB PERSIS seperti tertulis "
+                "(contoh: 'Pasal 7 AD menyatakan...').\n"
+                "3. JANGAN tambahkan fakta yang tidak tertulis di konten di bawah ini.\n"
+                "4. Jika konten yang ada tidak secara langsung menjawab pertanyaan, "
+                "katakan tidak memiliki informasi — JANGAN mengarang dari asumsi."
             )
 
         # 1. Chunk RAG (PDF) — biasanya lebih kaya konteks daripada dataset
@@ -380,15 +391,10 @@ class ChatbotAPIView(View):
                 )
                 idx += 1
 
-        # 3. Ringkasan semua dataset agar OpenAI tahu topik apa saja yang tersedia.
-        all_datasets = DatasetChatbot.objects.filter(jenis_chatbot=jenis, is_active=True)
-        if all_datasets.exists():
-            ringkasan_lines = []
-            for ds in all_datasets:
-                if ds.respon_jawaban:
-                    ringkasan_lines.append(f"- {ds.intent_keyword}: {ds.respon_jawaban[:120]}")
-            if ringkasan_lines:
-                parts.append("[Daftar Semua Topik yang Tersedia]\n" + "\n".join(ringkasan_lines))
+        # Ringkasan semua topik DIHAPUS — pengiriman semua dataset (meski tidak
+        # relevan) menambahkan noise ke prompt dan membuat model menjawab dari
+        # ringkasan yang pendek (120 char) daripada jawaban lengkap yang matched.
+        # Model sudah mendapat dataset yang paling relevan di bagian (2) di atas.
 
         return "\n\n".join(parts)
 

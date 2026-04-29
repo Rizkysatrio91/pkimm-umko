@@ -182,7 +182,7 @@ CACHES = {
 
 # Konfigurasi OpenAI
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
-OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-3.5-turbo')
+OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-4o-mini')
 # Admin API key (sk-admin-...) untuk endpoint billing/usage (opsional).
 # Jika kosong, dashboard admin tetap jalan pakai tracking lokal (BudgetLimiter).
 OPENAI_ADMIN_API_KEY = env('OPENAI_ADMIN_API_KEY', default='')
