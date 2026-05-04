@@ -38,3 +38,13 @@ CSRF_TRUSTED_ORIGINS = [
         'http://localhost,http://127.0.0.1',
     ).split(',') if o.strip()
 ]
+
+# --- Database connection pooling -----------------------------------------
+# Setiap request HTTP normalnya membuka & menutup koneksi DB baru. Saat
+# load tinggi (200 user serentak) overhead handshake PostgreSQL jadi
+# bottleneck. CONN_MAX_AGE mempersist koneksi selama 60 detik antar request
+# di worker yang sama → handshake hanya sekali per menit.
+# CONN_HEALTH_CHECKS memastikan koneksi yang di-reuse masih hidup
+# (PostgreSQL kadang tutup koneksi idle dari sisi server).
+DATABASES['default']['CONN_MAX_AGE'] = 60
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
