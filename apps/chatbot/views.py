@@ -28,12 +28,20 @@ from core.constants import JenisChatbot
 from core.exceptions import OpenAIServiceError
 from core.mixins import AdminRequiredMixin, CalonKaderRequiredMixin
 from core.rate_limiter import RateLimiter
+from core.security import issue_chat_token, verify_chat_token
 from core.services import OpenAIService
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Chatbot Publik ───────────────────────────────────────────────────────
+
+def _issue_token_for(request) -> str:
+    """Helper: terbitkan signed token chat untuk klien yang sedang merender halaman."""
+    ip = RateLimiter.get_client_ip(request)
+    ua = request.META.get('HTTP_USER_AGENT', '')
+    return issue_chat_token(ip, ua)
+
 
 class ChatbotPublikView(View):
     """Antarmuka chatbot publik (tanpa login)."""
@@ -51,6 +59,7 @@ class ChatbotPublikView(View):
                     'Pendaftaran DAD',
                 ],
                 'api_url': reverse('chatbot:api_send'),
+                'chat_token': _issue_token_for(request),
             },
         })
 
@@ -70,6 +79,7 @@ class ChatbotKaderView(CalonKaderRequiredMixin, View):
                     'Jadwal Kegiatan',
                 ],
                 'api_url': reverse('chatbot:api_send'),
+                'chat_token': _issue_token_for(request),
             },
         })
 
@@ -91,6 +101,17 @@ class ChatbotAPIView(View):
 
     # Batas ukuran body JSON. Chat seharusnya <5 KB; 32 KB sudah sangat longgar.
     MAX_BODY_BYTES = 32 * 1024
+
+    # Batas panjang pesan dari user. Pesan chat normal jauh di bawah ini.
+    # Membatasi panjang = membatasi token OpenAI yang terbakar per request.
+    MAX_PESAN_CHARS = 800
+
+    # Minimum jeda antar request dari IP yang sama (detik). 1.0 cukup untuk
+    # ngobrol natural tapi membunuh skenario k6 dengan 10 VUs konkuren.
+    MIN_INTERVAL_PER_IP = 1.0
+    # Minimum jeda antar request dari sesi yang sama. Sesi (sesi_id) ini
+    # kunci anti-flood per percakapan, terlepas IP.
+    MIN_INTERVAL_PER_SESSION = 1.5
 
     SAPAAN_KEYWORDS = [
         'halo', 'hai', 'hi', 'hey', 'assalamualaikum', 'assalamu',
@@ -457,19 +478,29 @@ class ChatbotAPIView(View):
     def _is_same_origin(self, request) -> bool:
         """Pastikan request berasal dari domain aplikasi sendiri.
 
-        Mencegah cross-site request dari situs jahat yang mencoba
-        membakar kuota OpenAI lewat browser user. Kita izinkan request
-        tanpa Origin/Referer (mis. curl, health check) — yang diblokir
-        hanya kalau header ADA dan host-nya bukan host aplikasi.
+        STRICT: untuk endpoint chatbot publik kita WAJIB ada Origin header
+        atau minimal Referer dengan host yang sama. Browser yang sah selalu
+        mengirim Origin pada POST cross-site/same-site. Klien CLI seperti
+        curl/k6 yang lupa mengirim Origin akan ditolak — ini fitur, bukan
+        bug, karena mencegah skrip masal langsung hit endpoint.
+
+        Untuk pengembangan lokal/health-check via curl, jalankan dari
+        loopback atau pakai endpoint admin yang berbeda.
         """
+        from urllib.parse import urlparse
+
         allowed_host = request.get_host()
-        origin = request.META.get('HTTP_ORIGIN', '')
-        referer = request.META.get('HTTP_REFERER', '')
+        origin = request.META.get('HTTP_ORIGIN', '').strip()
+        referer = request.META.get('HTTP_REFERER', '').strip()
+
+        # Wajib ada salah satu (Origin lebih kuat)
+        if not origin and not referer:
+            return False
+
         for header in (origin, referer):
             if not header:
                 continue
             try:
-                from urllib.parse import urlparse
                 host = urlparse(header).netloc
             except ValueError:
                 return False
@@ -499,13 +530,63 @@ class ChatbotAPIView(View):
             return JsonResponse({'success': False, 'error': 'Format data tidak valid.'})
 
         pesan = data.get('pesan', '').strip()
-        sesi_id = data.get('sesi_id', '')
+        sesi_id = data.get('sesi_id', '').strip()
         jenis = data.get('jenis', 'umum')
+        chat_token = data.get('chat_token', '').strip()
+        honeypot = data.get('website', '')  # field jebakan; harus selalu kosong
 
         if not pesan:
             return JsonResponse({'success': False, 'error': 'Pesan tidak boleh kosong.'})
 
+        # 3. Honeypot — bot otomatis cenderung mengisi semua field. User asli
+        # tidak pernah melihat field ini (CSS hidden + tabindex=-1).
+        if honeypot:
+            return JsonResponse(
+                {'success': False, 'error': 'Permintaan tidak diizinkan.'},
+                status=403,
+            )
+
+        # 4. Batas panjang pesan
+        if len(pesan) > self.MAX_PESAN_CHARS:
+            return JsonResponse(
+                {'success': False,
+                 'error': f'Pesan terlalu panjang (maks {self.MAX_PESAN_CHARS} karakter).'},
+                status=413,
+            )
+
+        # 5. Verifikasi signed token. Bot yang langsung POST ke API tanpa
+        # me-render halaman dulu tidak akan punya token ini.
+        ua = request.META.get('HTTP_USER_AGENT', '')
+        client_ip = RateLimiter.get_client_ip(request)
+        if not verify_chat_token(chat_token, client_ip, ua):
+            return JsonResponse(
+                {'success': False,
+                 'error': 'Sesi chat kadaluarsa. Silakan refresh halaman.'},
+                status=403,
+            )
+
         user = request.user if request.user.is_authenticated else None
+
+        # 6. MIN INTERVAL — bunuh request konkuren dari k6/skrip massal.
+        # Per IP: tidak boleh ada 2 request <1 dtk dari IP yang sama.
+        too_fast, retry_secs = RateLimiter.check_min_interval(
+            f"chat_iv_ip_{client_ip}", self.MIN_INTERVAL_PER_IP,
+        )
+        if too_fast:
+            return JsonResponse(
+                {'success': False, 'error': 'Terlalu cepat. Silakan tunggu sebentar.'},
+                status=429,
+            )
+        # Per session: anti-flood per percakapan
+        if sesi_id:
+            too_fast, _ = RateLimiter.check_min_interval(
+                f"chat_iv_ses_{sesi_id}", self.MIN_INTERVAL_PER_SESSION,
+            )
+            if too_fast:
+                return JsonResponse(
+                    {'success': False, 'error': 'Terlalu cepat. Silakan tunggu sebentar.'},
+                    status=429,
+                )
 
         # === LANGKAH 1: RATE LIMIT ===
         is_limited, limit_msg, retry_seconds = RateLimiter.check_chatbot_limit(request, jenis)

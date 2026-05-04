@@ -173,10 +173,19 @@ CKEDITOR_5_CONFIGS = {
 }
 
 # Konfigurasi Cache
+# DatabaseCache: counter rate limit harus SAMA di semua Gunicorn worker.
+# LocMemCache per-proses → 4 worker × 10 req/min = efektif 40 req/min (bocor).
+# DatabaseCache pakai tabel PostgreSQL dengan atomic INCR → konsisten.
+# Setelah pertama kali deploy, jalankan: python manage.py createcachetable
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'pk-imm-cache',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'pk_imm_cache',
+        'TIMEOUT': 86400,  # default 1 hari
+        'OPTIONS': {
+            'MAX_ENTRIES': 5000,
+            'CULL_FREQUENCY': 3,
+        },
     }
 }
 

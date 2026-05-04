@@ -1,11 +1,26 @@
 """
 Modul rate limiting menggunakan Django Cache.
 Membatasi jumlah request per IP/user untuk mencegah penyalahgunaan.
-Tidak perlu library tambahan — menggunakan cache bawaan Django.
+
+CATATAN PENTING (post-pentest April-May 2026):
+  - Cache backend WAJIB shared antar Gunicorn worker. LocMemCache per-proses
+    bocor: 4 worker × limit_per_menit = efektif 4x lipat. Pakai DatabaseCache
+    (lihat settings/base.py).
+  - get_client_ip TIDAK percaya X-Forwarded-For mentah. Hanya pakai header
+    proxy bila request datang dari loopback (artinya melewati nginx lokal).
+  - Untuk endpoint mahal (chatbot/OpenAI), batas anonymous lebih ketat
+    daripada user terotentikasi.
 """
 import time
 
 from django.core.cache import cache
+
+
+# IP loopback yang dianggap sebagai proxy lokal (nginx → gunicorn).
+# Hanya saat REMOTE_ADDR salah satu ini, kita boleh percaya X-Real-IP /
+# X-Forwarded-For. Dari luar (akses langsung ke gunicorn 8000), kita tidak
+# percaya header user-supplied.
+_TRUSTED_PROXIES = {'127.0.0.1', '::1', 'localhost'}
 
 
 class RateLimiter:
@@ -13,11 +28,42 @@ class RateLimiter:
 
     @staticmethod
     def get_client_ip(request) -> str:
-        """Ambil IP address dari request."""
-        x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded:
-            return x_forwarded.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR', 'unknown')
+        """Ambil IP klien dengan aman dari spoofing.
+
+        Aturan:
+          1. Kalau REMOTE_ADDR BUKAN loopback → pakai REMOTE_ADDR langsung
+             (request datang langsung tanpa proxy, header forward tidak valid).
+          2. Kalau REMOTE_ADDR loopback (request via nginx lokal) → percaya
+             X-Real-IP (di-set nginx dari $remote_addr; user tidak bisa
+             menimpa karena nginx menulisnya per request).
+          3. Fallback X-Forwarded-For RIGHTMOST (paling dekat ke nginx →
+             paling dipercaya saat menggunakan $proxy_add_x_forwarded_for).
+          4. Terakhir REMOTE_ADDR.
+
+        Penyerang yang mengirim X-Forwarded-For: 1.2.3.4 ke nginx hanya akan
+        membuat nginx menambah IP asli mereka di kanan, jadi rightmost selalu
+        IP nyata.
+        """
+        remote = request.META.get('REMOTE_ADDR', '').strip()
+
+        if remote not in _TRUSTED_PROXIES:
+            return remote or 'unknown'
+
+        # Kasus melewati nginx lokal — percaya header dari nginx.
+        real_ip = request.META.get('HTTP_X_REAL_IP', '').strip()
+        if real_ip:
+            return real_ip
+
+        xff = request.META.get('HTTP_X_FORWARDED_FOR', '').strip()
+        if xff:
+            ips = [i.strip() for i in xff.split(',') if i.strip()]
+            # Rightmost = IP yang paling dekat dengan nginx (paling dipercaya
+            # karena nginx menulis $remote_addr di posisi paling kanan).
+            for ip in reversed(ips):
+                if ip and ip not in _TRUSTED_PROXIES:
+                    return ip
+
+        return remote or 'unknown'
 
     @staticmethod
     def is_rate_limited(key: str, max_requests: int, period_seconds: int) -> tuple:
@@ -50,6 +96,22 @@ class RateLimiter:
                 cache.set(start_key, time.time(), period_seconds)
 
         return (False, max_requests - count - 1, 0)
+
+    @staticmethod
+    def check_min_interval(key: str, min_seconds: float) -> tuple:
+        """Pastikan jeda minimum antar request. Gagal kalau request terlalu cepat.
+
+        Return: (is_too_fast, retry_seconds)
+        """
+        last = cache.get(key)
+        now = time.time()
+        if last is not None:
+            elapsed = now - float(last)
+            if elapsed < min_seconds:
+                return (True, max(1, int(min_seconds - elapsed) + 1))
+        # Simpan timestamp request ini sebagai "last"
+        cache.set(key, now, int(min_seconds * 4) + 1)
+        return (False, 0)
 
     # === LOGIN RATE LIMIT ===
 
@@ -84,62 +146,88 @@ class RateLimiter:
         return cls.is_rate_limited(f"forgot_pwd_{ip}", max_requests=3, period_seconds=900)
 
     # === CHATBOT RATE LIMIT ===
+    #
+    # Strategi berlapis:
+    #   1. Min interval (1.0 dtk): bunuh request konkuren — k6 dengan 10 VUs
+    #      hampir bersamaan akan disaring di lapis ini.
+    #   2. Per-menit, per-jam, per-hari: per identifier user/ip.
+    #   3. Per-IP terpisah (untuk user terotentikasi): satu sesi tidak bisa
+    #      dipakai di banyak mesin sekaligus untuk membakar budget.
+    #   4. Per-sesi minimum interval ditambahkan di views (2 dtk antar pesan
+    #      di session yang sama).
+    #
+    # Anonymous lebih ketat karena anonymous = tidak ada kontrak, mahal.
+
+    # Limit anonymous (publik, belum login) — KETAT
+    ANON_PER_MIN = 4
+    ANON_PER_HOUR = 20
+    ANON_PER_DAY = 60
+
+    # Limit user terotentikasi — lebih longgar
+    USER_PER_MIN = 8
+    USER_PER_HOUR = 40
+    USER_PER_DAY = 150
+
+    # Limit per IP terlepas dari status auth (anti session-sharing)
+    PER_IP_HARD_DAY = 100
 
     @classmethod
     def check_chatbot_limit(cls, request, jenis: str = 'umum') -> tuple:
         """
-        Batasi chatbot per IP/user. Longgar agar user nyaman.
-        Batas: 10/menit, 60/jam, 300/hari.
+        Batasi chatbot per IP/user.
         Return: (is_limited, pesan_untuk_user, retry_seconds)
         """
         from datetime import datetime, timedelta
 
+        ip = cls.get_client_ip(request)
+
         if request.user.is_authenticated:
             identifier = f"user_{request.user.id_user}"
+            per_min = cls.USER_PER_MIN
+            per_hour = cls.USER_PER_HOUR
+            per_day = cls.USER_PER_DAY
         else:
-            identifier = f"ip_{cls.get_client_ip(request)}"
+            identifier = f"ip_{ip}"
+            per_min = cls.ANON_PER_MIN
+            per_hour = cls.ANON_PER_HOUR
+            per_day = cls.ANON_PER_DAY
 
-        # Per menit: maks 10 pesan (anti flood/spam bot)
-        limited, _, retry_secs = cls.is_rate_limited(
-            f"chat_min_{identifier}", 10, 60,
-        )
-        if limited:
+        def _msg(retry_secs, label):
             now = datetime.now()
             reset_at = now + timedelta(seconds=retry_secs)
             reset_str = reset_at.strftime('%H:%M')
-            msg = (
-                f"Anda telah mencapai batas penggunaan. "
+            return (
+                f"Anda telah mencapai batas penggunaan{label}. "
                 f"Penggunaan Anda akan direset pada pukul {reset_str} WIB."
             )
-            return (True, msg, retry_secs)
 
-        # Per jam: maks 60 pesan
+        # Per menit
         limited, _, retry_secs = cls.is_rate_limited(
-            f"chat_hour_{identifier}", 60, 3600,
+            f"chat_min_{identifier}", per_min, 60,
         )
         if limited:
-            now = datetime.now()
-            reset_at = now + timedelta(seconds=retry_secs)
-            reset_str = reset_at.strftime('%H:%M')
-            msg = (
-                f"Anda telah mencapai batas penggunaan per jam. "
-                f"Penggunaan Anda akan direset pada pukul {reset_str} WIB."
-            )
-            return (True, msg, retry_secs)
+            return (True, _msg(retry_secs, ''), retry_secs)
 
-        # Per hari: maks 300 pesan
+        # Per jam
         limited, _, retry_secs = cls.is_rate_limited(
-            f"chat_day_{identifier}", 300, 86400,
+            f"chat_hour_{identifier}", per_hour, 3600,
         )
         if limited:
-            now = datetime.now()
-            reset_at = now + timedelta(seconds=retry_secs)
-            reset_str = reset_at.strftime('%H:%M')
-            msg = (
-                f"Anda telah mencapai batas penggunaan harian. "
-                f"Penggunaan Anda akan direset pada pukul {reset_str} WIB."
-            )
-            return (True, msg, retry_secs)
+            return (True, _msg(retry_secs, ' per jam'), retry_secs)
+
+        # Per hari (per identifier)
+        limited, _, retry_secs = cls.is_rate_limited(
+            f"chat_day_{identifier}", per_day, 86400,
+        )
+        if limited:
+            return (True, _msg(retry_secs, ' harian'), retry_secs)
+
+        # Per-IP harian (anti session-sharing dari banyak mesin)
+        limited, _, retry_secs = cls.is_rate_limited(
+            f"chat_day_ip_{ip}", cls.PER_IP_HARD_DAY, 86400,
+        )
+        if limited:
+            return (True, _msg(retry_secs, ' harian dari jaringan ini'), retry_secs)
 
         return (False, '', 0)
 
