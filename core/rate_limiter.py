@@ -67,35 +67,46 @@ class RateLimiter:
 
     @staticmethod
     def is_rate_limited(key: str, max_requests: int, period_seconds: int) -> tuple:
-        """
-        Cek apakah request sudah melebihi batas.
-        Menyimpan waktu mulai periode agar bisa menghitung SISA WAKTU yang akurat.
+        """Sliding window berbasis ``start_ts`` (anchor waktu pembukaan window).
+
+        Window aktif kalau ``now - start_ts < period_seconds``. Counter
+        ``key`` selalu di-set dengan TTL = sisa window agar konsisten dengan
+        ``start_ts`` — keduanya hidup atau mati bersama.
+
+        BUG FIX (2026-05): implementasi sebelumnya pakai ``cache.incr(key)``,
+        tetapi di Django DatabaseCache ``incr()`` memanggil ``set()`` TANPA
+        meneruskan timeout, sehingga TTL ter-reset ke default ``CACHES.TIMEOUT``
+        (1 hari di proyek ini). Akibatnya counter bertahan 1 hari sementara
+        ``start_ts`` expire setelah ``period_seconds`` (60 dtk untuk
+        per-menit) — saat ``start_ts`` hilang tapi counter masih max,
+        fallback ``remaining_secs = period_seconds`` membuat tiap retry
+        menambah 1 window penuh dan user terkunci sampai TTL counter
+        habis (24 jam).
+
         Return: (is_limited, remaining_requests, retry_after_seconds)
         """
-        count = cache.get(key, 0)
         start_key = f"{key}_ts"
+        now = time.time()
+        start_ts = cache.get(start_key)
+
+        # Window baru: belum ada anchor, atau anchor sudah lewat period.
+        if start_ts is None or (now - float(start_ts)) >= period_seconds:
+            cache.set(key, 1, period_seconds)
+            cache.set(start_key, now, period_seconds)
+            return (False, max_requests - 1, 0)
+
+        elapsed = now - float(start_ts)
+        remaining_secs = max(1, int(period_seconds - elapsed))
+        count = cache.get(key, 0)
 
         if count >= max_requests:
-            # Hitung sisa waktu SEBENARNYA berdasarkan kapan periode dimulai
-            start_ts = cache.get(start_key)
-            if start_ts:
-                elapsed = time.time() - start_ts
-                remaining_secs = max(1, int(period_seconds - elapsed))
-            else:
-                remaining_secs = period_seconds
             return (True, 0, remaining_secs)
 
-        if count == 0:
-            cache.set(key, 1, period_seconds)
-            cache.set(start_key, time.time(), period_seconds)
-        else:
-            try:
-                cache.incr(key)
-            except ValueError:
-                cache.set(key, 1, period_seconds)
-                cache.set(start_key, time.time(), period_seconds)
-
-        return (False, max_requests - count - 1, 0)
+        # Naikkan counter dengan TTL = sisa window. Tidak pakai cache.incr()
+        # karena di DatabaseCache resets TTL ke default (lihat docstring).
+        new_count = count + 1
+        cache.set(key, new_count, remaining_secs)
+        return (False, max_requests - new_count, 0)
 
     @staticmethod
     def check_min_interval(key: str, min_seconds: float) -> tuple:
