@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PK IMM FTIK UMKO{% endblock %}</title>
+    {% load static %}
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
     <style>
         body { font-family: 'Times New Roman', Times, serif; color: #000000; }
     </style>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    {% load static %}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
     <link rel="stylesheet" href="/static/css/custom.css">
     {% block extra_css %}{% endblock %}
