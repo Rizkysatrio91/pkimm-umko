@@ -1,0 +1,26 @@
+{
+  "name": "pk_imm",
+  "version": "1.0.0",
+  "description": "Sistem manajemen Pimpinan Komisariat Ikatan Mahasiswa Muhammadiyah (PK IMM) Universitas Muhammadiyah Kotabumi (UMKO) berbasis Web Mobile dengan integrasi **Artificial Intelligence**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rizkysatrio91/pkimm-umko.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Rizkysatrio91/pkimm-umko/issues"
+  },
+  "homepage": "https://github.com/Rizkysatrio91/pkimm-umko#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

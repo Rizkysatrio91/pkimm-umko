@@ -4,32 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PK IMM FTIK UMKO{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
     <style>
         body { font-family: 'Times New Roman', Times, serif; color: #000000; }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'sans': ['"Times New Roman"', 'Times', 'serif'],
-                    },
-                    colors: {
-                        'maroon':        '#5B1525',
-                        'maroon-dark':   '#3D0C15',
-                        'maroon-deep':   '#2D0810',
-                        'maroon-accent': '#7A2E3E',
-                        'maroon-light':  '#EDD8DC',
-                        gold:   { DEFAULT: '#D4A843', light: '#E8C96A' },
-                        cream:  { DEFAULT: '#FDF8F0', dark: '#F5EDE0' },
-                        dark:   { DEFAULT: '#1A1A2E' },
-                    }
-                }
-            }
-        }
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% load static %}
     <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
     <link rel="stylesheet" href="/static/css/custom.css">

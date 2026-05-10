@@ -1,20 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Halaman Tidak Ditemukan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: {
-                maroon: { DEFAULT: '#6B1D2A', dark: '#4A0E1A' },
-                gold: { DEFAULT: '#D4A843' },
-                cream: { DEFAULT: '#FDF8F0' },
-            }}}
-        }
-    </script>
-    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+        <link rel="stylesheet" href="/static/css/custom.css">
 </head>
 <body class="bg-cream min-h-screen flex items-center justify-center px-4">
     <div class="text-center animate-scaleIn">
