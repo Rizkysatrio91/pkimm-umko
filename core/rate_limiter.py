@@ -8,12 +8,16 @@ CATATAN PENTING (post-pentest April-May 2026):
     (lihat settings/base.py).
   - get_client_ip TIDAK percaya X-Forwarded-For mentah. Hanya pakai header
     proxy bila request datang dari loopback (artinya melewati nginx lokal).
+  - CF-Connecting-IP hanya dipercaya bila XFF rightmost (= IP yang konek
+    ke nginx) ada di range edge Cloudflare resmi (core/cloudflare_ips.py).
   - Untuk endpoint mahal (chatbot/OpenAI), batas anonymous lebih ketat
     daripada user terotentikasi.
 """
 import time
 
 from django.core.cache import cache
+
+from core.cloudflare_ips import is_cloudflare_ip
 
 
 # IP loopback yang dianggap sebagai proxy lokal (nginx → gunicorn).
@@ -30,36 +34,54 @@ class RateLimiter:
     def get_client_ip(request) -> str:
         """Ambil IP klien dengan aman dari spoofing.
 
-        Aturan:
-          1. Kalau REMOTE_ADDR BUKAN loopback → pakai REMOTE_ADDR langsung
-             (request datang langsung tanpa proxy, header forward tidak valid).
-          2. Kalau REMOTE_ADDR loopback (request via nginx lokal) → percaya
-             X-Real-IP (di-set nginx dari $remote_addr; user tidak bisa
-             menimpa karena nginx menulisnya per request).
-          3. Fallback X-Forwarded-For RIGHTMOST (paling dekat ke nginx →
-             paling dipercaya saat menggunakan $proxy_add_x_forwarded_for).
-          4. Terakhir REMOTE_ADDR.
+        Topologi production:
+          User → Cloudflare edge → nginx (localhost) → gunicorn
 
-        Penyerang yang mengirim X-Forwarded-For: 1.2.3.4 ke nginx hanya akan
-        membuat nginx menambah IP asli mereka di kanan, jadi rightmost selalu
-        IP nyata.
+        Aturan:
+          1. REMOTE_ADDR BUKAN loopback → pakai REMOTE_ADDR (akses langsung
+             tanpa proxy, header forward tidak valid).
+          2. REMOTE_ADDR loopback (via nginx):
+             a. Bila XFF rightmost ada di range edge Cloudflare resmi,
+                request memang dari CF → pakai CF-Connecting-IP. nginx
+                meng-append $remote_addr (IP yang konek ke nginx) di
+                rightmost via $proxy_add_x_forwarded_for, sehingga
+                penyerang yang bypass CF tidak bisa memalsukan ini.
+             b. Selain itu, pakai X-Real-IP (di-set nginx).
+             c. Fallback XFF rightmost (paling dekat nginx).
+             d. Terakhir REMOTE_ADDR.
+
+        Penyerang yang mengirim header palsu ke nginx hanya akan membuat
+        nginx menambah IP asli mereka di rightmost XFF, jadi rightmost
+        selalu IP TCP peer yang nyata.
         """
         remote = request.META.get('REMOTE_ADDR', '').strip()
 
         if remote not in _TRUSTED_PROXIES:
             return remote or 'unknown'
 
-        # Kasus melewati nginx lokal — percaya header dari nginx.
+        # Lewat nginx lokal — cek apakah upstream-nya Cloudflare.
+        xff = request.META.get('HTTP_X_FORWARDED_FOR', '').strip()
+        xff_ips = [i.strip() for i in xff.split(',') if i.strip()] if xff else []
+        edge_ip = xff_ips[-1] if xff_ips else ''
+
+        if edge_ip and is_cloudflare_ip(edge_ip):
+            # Tervalidasi: TCP peer nginx ada di range edge CF.
+            cf_ip = request.META.get('HTTP_CF_CONNECTING_IP', '').strip()
+            if cf_ip:
+                return cf_ip
+            # Aneh: lewat CF tapi tanpa CF-Connecting-IP. Pakai leftmost XFF
+            # (visitor IP yang ditulis CF) sebagai fallback.
+            if len(xff_ips) >= 2:
+                return xff_ips[0]
+            return edge_ip
+
+        # Bukan via CF — pakai header nginx tradisional.
         real_ip = request.META.get('HTTP_X_REAL_IP', '').strip()
         if real_ip:
             return real_ip
 
-        xff = request.META.get('HTTP_X_FORWARDED_FOR', '').strip()
-        if xff:
-            ips = [i.strip() for i in xff.split(',') if i.strip()]
-            # Rightmost = IP yang paling dekat dengan nginx (paling dipercaya
-            # karena nginx menulis $remote_addr di posisi paling kanan).
-            for ip in reversed(ips):
+        if xff_ips:
+            for ip in reversed(xff_ips):
                 if ip and ip not in _TRUSTED_PROXIES:
                     return ip
 
