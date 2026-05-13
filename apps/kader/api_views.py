@@ -1,12 +1,33 @@
 """API views untuk app kader."""
+import logging
 from datetime import datetime
 
 from django.http import JsonResponse
 from django.views import View
 
+from apps.accounts.models import AuditLog
 from apps.kader.models import KonfigurasiSistem, ProgramStudi
 from core.exceptions import SSOServiceError
+from core.rate_limiter import RateLimiter
 from core.services import SSOService
+
+logger = logging.getLogger(__name__)
+
+
+def _write_audit(request, target: str, success: bool) -> None:
+    """Tulis baris audit untuk akses SSO lookup. Tidak boleh menggagalkan
+    request utama: kegagalan audit hanya di-log, tidak di-raise."""
+    try:
+        AuditLog.objects.create(
+            id_user=request.user if request.user.is_authenticated else None,
+            action=AuditLog.ACTION_SSO_LOOKUP,
+            target=target[:200],
+            ip_address=RateLimiter.get_client_ip(request) or None,
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+            success=success,
+        )
+    except Exception:
+        logger.exception('Gagal menulis audit log untuk SSO lookup')
 
 
 
@@ -21,6 +42,7 @@ class SSOLookupView(View):
 
     def get(self, request):
         if not request.user.is_authenticated or request.user.role != 'admin':
+            _write_audit(request, target=f'npm={request.GET.get("npm", "")}', success=False)
             return JsonResponse({'error': 'Akses ditolak.'}, status=403)
 
         npm = request.GET.get('npm', '').strip()
@@ -31,13 +53,18 @@ class SSOLookupView(View):
             sso = SSOService()
             mhs = sso.get_mahasiswa_by_nim(npm)
         except SSOServiceError as e:
+            _write_audit(request, target=f'npm={npm}', success=False)
             return JsonResponse({'error': str(e)}, status=503)
 
         if not mhs:
+            _write_audit(request, target=f'npm={npm}', success=False)
             return JsonResponse(
                 {'error': f'Mahasiswa dengan NPM {npm} tidak ditemukan di SSO UMKO.'},
                 status=404,
             )
+
+        # Lookup berhasil — catat ke audit log SEBELUM return data sensitif
+        _write_audit(request, target=f'npm={npm}', success=True)
 
         konfig = KonfigurasiSistem.get_instance()
 

@@ -107,3 +107,57 @@ class User(AbstractUser):
         self.otp_token = None
         self.otp_expired_at = None
         self.save(update_fields=['otp_token', 'otp_expired_at'])
+
+
+class AuditLog(models.Model):
+    """Catatan audit aksi sensitif (lookup data SSO mahasiswa, dll).
+
+    Tabel append-only: tidak ada UI untuk delete/edit. Tujuan:
+      - Akuntabilitas: siapa admin yang mengakses data mahasiswa mana, kapan
+      - Bukti forensik bila terjadi insiden kebocoran data
+      - Deteksi pola enumerasi NPM yang tidak normal
+
+    Field id_user nullable supaya event sistem (mis. percobaan akses tanpa
+    login) tetap bisa dicatat tanpa FK orphan.
+    """
+
+    ACTION_SSO_LOOKUP = 'sso_lookup'
+    ACTION_CHOICES = [
+        (ACTION_SSO_LOOKUP, 'Lookup data mahasiswa via SSO UMKO'),
+    ]
+
+    id_audit = models.AutoField(primary_key=True)
+    id_user = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_user',
+        related_name='audit_logs',
+    )
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    target = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Detail target aksi, mis. "npm=2259201005"',
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    success = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'audit_log'
+        ordering = ['-created_at']
+        verbose_name = 'Audit Log'
+        verbose_name_plural = 'Audit Log'
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['action', '-created_at']),
+            models.Index(fields=['id_user', '-created_at']),
+        ]
+
+    def __str__(self) -> str:
+        who = self.id_user.username if self.id_user_id else 'anonymous'
+        ts = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else '-'
+        return f'[{ts}] {who} → {self.action} ({self.target})'
