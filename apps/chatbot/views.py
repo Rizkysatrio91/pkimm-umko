@@ -182,6 +182,72 @@ class ChatbotAPIView(View):
     PASAL_REGEX = re.compile(r'\bpasal\s+(\d+)', re.IGNORECASE)
     BAB_REGEX = re.compile(r'\bbab\s+([ivxlcdm\d]+)', re.IGNORECASE)
 
+    # Singkatan organisasi yang sering dipakai user tapi PDF/dokumen sumber
+    # menulis dalam bentuk LENGKAP. Tanpa expansion, embedding query "ad art"
+    # punya cosine distance >0.66 ke chunk yang isinya kata lengkap "Anggaran
+    # Dasar/Rumah Tangga" — di atas threshold fallback 0.7, sehingga chunk
+    # paling relevan TIDAK terambil. Diagnostik mengonfirmasi: query
+    # "anggaran rumah tangga" → distance 0.55 (lulus), tapi "ad art" → 0.66+
+    # (gagal). Expansion ini menambah konteks ke query embedding sehingga
+    # vector dekat ke kedua bentuk (singkatan & lengkap).
+    #
+    # PENTING: expansion HANYA dipakai untuk embedding vector search. Pesan
+    # asli user tetap dipakai apa adanya untuk keyword search (PASAL/BAB),
+    # riwayat chat, dan ditampilkan ke OpenAI sebagai pertanyaan asli.
+    #
+    # Urutan: pola yang lebih spesifik harus duluan supaya tidak ter-shadow
+    # oleh pola yang lebih umum (mis. "pk imm" sebelum "imm").
+    ABBREVIATION_EXPANSIONS = [
+        (re.compile(r'\bad\s*[/\s&]+\s*art\b', re.IGNORECASE),
+         'AD/ART (Anggaran Dasar dan Anggaran Rumah Tangga)'),
+        (re.compile(r'\bpk\s+imm\b', re.IGNORECASE),
+         'PK IMM (Pimpinan Komisariat Ikatan Mahasiswa Muhammadiyah)'),
+        (re.compile(r'\bdad\b', re.IGNORECASE),
+         'DAD (Darul Arqam Dasar)'),
+        (re.compile(r'\bimm\b', re.IGNORECASE),
+         'IMM (Ikatan Mahasiswa Muhammadiyah)'),
+        (re.compile(r'\bumko\b', re.IGNORECASE),
+         'UMKO (Universitas Muhammadiyah Kotabumi)'),
+        (re.compile(r'\bftik\b', re.IGNORECASE),
+         'FTIK (Fakultas Teknik dan Ilmu Komputer)'),
+    ]
+
+    def _expand_query_for_embedding(self, pesan: str) -> str:
+        """Expand singkatan organisasi → bentuk lengkap untuk embedding.
+
+        Single-pass non-overlapping replacement supaya pola yang lebih
+        spesifik (mis. "pk imm" di posisi 0..6) menutup pola yang lebih
+        umum (mis. "imm" di posisi 3..6) — tidak double-expand. Pola
+        lebih spesifik harus didefinisikan duluan di ABBREVIATION_EXPANSIONS.
+
+        Aman dipanggil meski tidak ada singkatan (no-op kalau no match).
+        """
+        # Kumpulkan semua kandidat match dari semua pola
+        candidates: list[tuple[int, int, str, int]] = []
+        for idx, (pattern, replacement) in enumerate(self.ABBREVIATION_EXPANSIONS):
+            for m in pattern.finditer(pesan):
+                candidates.append((m.start(), m.end(), replacement, idx))
+
+        if not candidates:
+            return pesan
+
+        # Urutkan: posisi awal naik; di posisi awal sama, prioritaskan pola
+        # dengan match LEBIH PANJANG (end besar); jika sama panjang, ambil
+        # pola yang didefinisikan duluan (idx kecil = lebih spesifik).
+        candidates.sort(key=lambda x: (x[0], -x[1], x[3]))
+
+        # Greedy non-overlapping selection
+        parts: list[str] = []
+        cursor = 0
+        for start, end, replacement, _ in candidates:
+            if start < cursor:
+                continue  # tumpang tindih → lewati
+            parts.append(pesan[cursor:start])
+            parts.append(replacement)
+            cursor = end
+        parts.append(pesan[cursor:])
+        return ''.join(parts)
+
     def _find_matching_chunks(self, pesan: str, jenis: str) -> list:
         """Hybrid search RAG: keyword (pasal/bab) + vector (semantic).
 
@@ -261,7 +327,12 @@ class ChatbotAPIView(View):
         has_embeddings = base_qs.filter(embedding__isnull=False).exists()
         if has_embeddings:
             try:
-                query_vec = OpenAIService().embed_text(pesan)
+                # Expand singkatan organisasi sebelum embedding supaya query
+                # semantik dekat ke chunk yang ditulis dengan kata lengkap
+                # di PDF (mis. "ad art" → query embedding juga menggabungkan
+                # frasa "Anggaran Dasar dan Anggaran Rumah Tangga").
+                embedding_query = self._expand_query_for_embedding(pesan)
+                query_vec = OpenAIService().embed_text(embedding_query)
                 vector_qs = (
                     base_qs.filter(embedding__isnull=False)
                     .annotate(distance=CosineDistance('embedding', query_vec))
