@@ -47,12 +47,20 @@ def kb(n_bytes: int) -> str:
     return f"{n_bytes/1024/1024:.2f} MB"
 
 
-def backup_path(src: Path) -> Path:
-    """media/foo.jpg → media_backup/foo.jpg, static/images/x.png → static_backup/images/x.png"""
-    parts = src.parts
+def backup_path(src: Path, project_root: Path) -> Path:
+    """media/foo.jpg → {project_root}/media_backup/foo.jpg,
+    static/images/x.png → {project_root}/static_backup/images/x.png
+
+    src bisa absolute atau relative; project_root harus absolute.
+    """
+    try:
+        rel = src.resolve().relative_to(project_root.resolve())
+    except ValueError:
+        rel = Path(src.name)
+    parts = rel.parts
     root = parts[0]
     rest = parts[1:]
-    backup_root = f"{root}_backup"
+    backup_root = project_root / f"{root}_backup"
     return Path(backup_root, *rest)
 
 
@@ -60,7 +68,7 @@ def has_alpha(img: Image.Image) -> bool:
     return img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
 
 
-def process_image(src: Path, dry_run: bool = False) -> dict:
+def process_image(src: Path, project_root: Path, dry_run: bool = False) -> dict:
     """Return stats dict."""
     orig_size = src.stat().st_size
     stat = {
@@ -103,7 +111,7 @@ def process_image(src: Path, dry_run: bool = False) -> dict:
         return stat
 
     # Backup original sebelum overwrite
-    bkp = backup_path(src)
+    bkp = backup_path(src, project_root)
     bkp.parent.mkdir(parents=True, exist_ok=True)
     if not bkp.exists():
         shutil.copy2(src, bkp)
@@ -187,7 +195,7 @@ def main():
 
     for f in files:
         rel = f.relative_to(project_root)
-        stat = process_image(f, dry_run=args.dry_run)
+        stat = process_image(f, project_root, dry_run=args.dry_run)
         if stat["skipped"]:
             skipped.append((rel, stat["skip_reason"]))
             continue
