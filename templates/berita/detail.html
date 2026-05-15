@@ -1,5 +1,10 @@
 {% extends "base_public.html" %}
+{% load image_tags %}
 {% block title %}{{ berita.judul }} - PK IMM FTIK UMKO{% endblock %}
+{% block meta_description %}{{ berita.konten_final|striptags|truncatewords:30 }}{% endblock %}
+{% block og_title %}{{ berita.judul }}{% endblock %}
+{% block og_description %}{{ berita.konten_final|striptags|truncatewords:25 }}{% endblock %}
+{% block og_image %}{% if berita.gambar_utama %}{{ request.scheme }}://{{ request.get_host }}{{ berita.gambar_utama.url }}{% else %}{{ block.super }}{% endif %}{% endblock %}
 
 {% block content %}
 <article class="max-w-3xl mx-auto">
@@ -26,7 +31,7 @@
     <!-- Gambar Utama -->
     {% if berita.gambar_utama %}
     <div class="rounded-xl overflow-hidden mb-8">
-        <img src="{{ berita.gambar_utama.url }}" alt="{{ berita.judul }}" class="w-full">
+        {% picture berita.gambar_utama alt=berita.judul classes="w-full" loading="eager" fetchpriority="high" %}
     </div>
     {% endif %}
 

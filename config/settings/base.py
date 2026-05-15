@@ -65,6 +65,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.global_context',
             ],
+            'libraries': {
+                'image_tags': 'core.templatetags.image_tags',
+            },
         },
     },
 ]

@@ -1,6 +1,8 @@
 {% extends "base_public.html" %}
-{% load static %}
+{% load static image_tags %}
 {% block title %}Beranda - PK IMM FTIK UMKO{% endblock %}
+{% block meta_description %}Selamat datang di PK IMM FTIK UMKO. Pimpinan Komisariat Ikatan Mahasiswa Muhammadiyah FTIK Universitas Muhammadiyah Kotabumi — kaderisasi, kegiatan, dan asisten virtual AI.{% endblock %}
+{% block og_title %}PK IMM FTIK UMKO — Pimpinan Komisariat IMM{% endblock %}
 
 {% block main_class %}{% endblock %}
 
@@ -10,9 +12,14 @@
 
     <!-- Background Image -->
     <div class="absolute inset-0">
-        <img src="{% static 'images/hero_background.jpg' %}"
-             alt="Kampus UMKO"
-             class="w-full h-full hero-bg-img">
+        <picture>
+            <source type="image/webp" srcset="{% static 'images/hero_background.webp' %}">
+            <img src="{% static 'images/hero_background.jpg' %}"
+                 alt="Kampus Universitas Muhammadiyah Kotabumi"
+                 fetchpriority="high"
+                 class="w-full h-full hero-bg-img"
+                 width="1600" height="900">
+        </picture>
     </div>
 
     <!-- Overlay Gradient Maroon -->
@@ -36,8 +43,11 @@
         <!-- Logo -->
         <div class="flex justify-center mb-5 animate-fadeIn">
             <div class="w-24 h-24 rounded-full bg-white/10 border-2 border-gold/50 flex items-center justify-center shadow-xl p-2">
-                <img src="{% static 'images/logo_pk_imm_ftik.png' %}" alt="PK IMM FTIK"
-                     class="h-full w-full object-contain">
+                <img src="{% static 'images/logo_pk_imm_ftik.png' %}"
+                     alt="Logo PK IMM FTIK UMKO"
+                     class="h-full w-full object-contain"
+                     width="96" height="96"
+                     fetchpriority="high">
             </div>
         </div>
 
@@ -97,8 +107,7 @@
                 <div class="flex-shrink-0 p-8 md:p-10 flex flex-col items-center justify-center md:border-r border-gray-100">
                     <div class="relative">
                         {% if sambutan.foto %}
-                        <img src="{{ sambutan.foto.url }}" alt="{{ sambutan.nama }}"
-                             class="w-40 h-40 sm:w-48 sm:h-48 rounded-full object-cover border-4 border-maroon/20 shadow-xl animate-float">
+                        {% picture sambutan.foto alt=sambutan.nama classes="w-40 h-40 sm:w-48 sm:h-48 rounded-full object-cover border-4 border-maroon/20 shadow-xl animate-float" loading="lazy" %}
                         {% else %}
                         <div class="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-gradient-to-br from-maroon to-maroon-accent flex items-center justify-center border-4 border-maroon/20 shadow-xl animate-float">
                             <span class="text-white font-bold text-5xl">{{ sambutan.nama|first|upper }}</span>
@@ -165,9 +174,14 @@
 
                 <!-- Kanan: Gambar Logo AI Bulat Transparan -->
                 <div class="flex-shrink-0 p-6 md:p-8 flex items-center justify-center">
-                    <img src="{% static 'images/logo_AI_circle.png' %}"
-                         alt="AI Assistant PK IMM FTIK UMKO"
-                         class="w-44 h-44 sm:w-52 sm:h-52 md:w-60 md:h-60 lg:w-64 lg:h-64 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 animate-float">
+                    <picture>
+                        <source type="image/webp" srcset="{% static 'images/logo_AI_circle.webp' %}">
+                        <img src="{% static 'images/logo_AI_circle.png' %}"
+                             alt="Asisten Virtual AI PK IMM FTIK UMKO"
+                             class="w-44 h-44 sm:w-52 sm:h-52 md:w-60 md:h-60 lg:w-64 lg:h-64 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 animate-float"
+                             width="256" height="256"
+                             loading="lazy">
+                    </picture>
                 </div>
 
             </div>
@@ -195,8 +209,7 @@
                        class="flex gap-3 bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition group p-3 h-full card-hover">
                         {% if b.gambar_utama %}
                         <div class="w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden">
-                            <img src="{{ b.gambar_utama.url }}" alt="{{ b.judul }}"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            {% picture b.gambar_utama alt=b.judul classes="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" %}
                         </div>
                         {% else %}
                         <div class="w-24 h-20 flex-shrink-0 rounded-lg bg-maroon/10 flex items-center justify-center">
@@ -218,13 +231,13 @@
 
         <template x-if="maxIndex > 0">
             <div>
-                <button @click="prev()" class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-maroon hover:bg-maroon hover:text-white transition z-10">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="prev()" aria-label="Berita sebelumnya" class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-maroon hover:bg-maroon hover:text-white transition z-10">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
-                <button @click="next()" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-maroon hover:bg-maroon hover:text-white transition z-10">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="next()" aria-label="Berita berikutnya" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-maroon hover:bg-maroon hover:text-white transition z-10">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
                 </button>
@@ -235,6 +248,7 @@
             <div class="flex justify-center mt-4 space-x-2">
                 <template x-for="i in maxIndex + 1" :key="i">
                     <button @click="goTo(i - 1)"
+                            :aria-label="`Ke slide berita ${i}`"
                             class="w-2 h-2 rounded-full transition"
                             :class="current === i - 1 ? 'bg-[#5B1525]' : 'bg-gray-300 hover:bg-gray-400'">
                     </button>

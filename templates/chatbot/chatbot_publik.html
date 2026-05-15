@@ -5,10 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asisten Virtual IMM - PK IMM FTIK UMKO</title>
+    <meta name="description" content="Asisten virtual AI PK IMM FTIK UMKO — tanya seputar ke-IMM-an, ideologi, AD/ART, sejarah Muhammadiyah & IMM.">
+    <meta name="robots" content="index, follow">
+    <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="icon" type="image/png" href="/static/images/logo_pk_imm_ftik.png">
-    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="h-full bg-maroon" x-data="chatbot()">
 {{ chatbot_config|json_script:"chatbot-config" }}
@@ -32,7 +35,10 @@
 
     <!-- ====== WELCOME AREA (maroon bg) ====== -->
     <div class="bg-maroon px-4 pb-6 text-center flex-shrink-0">
-        <img src="{% static 'images/logo_AI.png' %}" alt="AI Assistant" class="w-16 h-16 rounded-full object-cover border-2 border-white/30 shadow-lg mx-auto mb-3">
+        <picture>
+            <source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}">
+            <img src="{% static 'images/logo_AI.png' %}" alt="Asisten AI Virtual IMM" width="64" height="64" fetchpriority="high" class="w-16 h-16 rounded-full object-cover border-2 border-white/30 shadow-lg mx-auto mb-3">
+        </picture>
         <p class="text-white font-bold text-base">Halo! Saya Asisten IMM FTIK UMKO 👋</p>
         <p class="text-white/60 text-xs mt-1">Saya siap menjawab pertanyaanmu seputar IMM-an</p>
         <!-- Quick Topic Pills -->
@@ -56,7 +62,7 @@
 
         <!-- Welcome Message (static) -->
         <div class="flex items-end gap-2">
-            <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+            <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
             <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[78%] shadow-sm">
                 <p class="text-sm text-gray-700">Assalamualaikum wr. wb, Halo!! Saya asisten virtual IMM FTIK UMKO. Ada yang bisa saya bantu?</p>
             </div>
@@ -74,7 +80,7 @@
                 </template>
                 <template x-if="msg.role === 'bot'">
                     <div class="flex items-end gap-2">
-                        <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+                        <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
                         <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[78%] shadow-sm">
                             <p class="text-sm text-gray-700 whitespace-pre-line" x-text="msg.content"></p>
                         </div>
@@ -85,7 +91,7 @@
 
         <!-- Typing indicator -->
         <div x-show="loading" class="flex items-end gap-2">
-            <img src="{% static 'images/logo_AI.png' %}" alt="AI" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+            <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
             <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                 <div class="flex gap-1">
                     <span class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
@@ -123,15 +129,17 @@
             <input type="text" name="website" x-model="honeypot" tabindex="-1"
                    autocomplete="off" aria-hidden="true"
                    style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
-            <input type="text" x-model="inputText"
+            <label for="chatbot-input" class="sr-only">Pertanyaan untuk asisten IMM</label>
+            <input id="chatbot-input" type="text" x-model="inputText"
                    placeholder="Tanya seputar ke-IMM-an..."
                    :disabled="loading || rateLimited"
                    :maxlength="800"
                    :class="rateLimited ? 'opacity-50 cursor-not-allowed' : ''"
                    class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition text-sm outline-none">
             <button type="submit" :disabled="loading || rateLimited || !inputText.trim()"
+                    aria-label="Kirim pesan"
                     class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
             </button>

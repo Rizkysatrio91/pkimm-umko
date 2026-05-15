@@ -1,5 +1,7 @@
 {% extends "base_public.html" %}
+{% load image_tags %}
 {% block title %}Semua Berita - PK IMM FTIK UMKO{% endblock %}
+{% block meta_description %}Daftar berita dan pengumuman terkini dari PK IMM FTIK Universitas Muhammadiyah Kotabumi.{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -16,8 +18,7 @@
         <a href="{% url 'berita:detail' b.slug %}" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition group">
             {% if b.gambar_utama %}
             <div class="aspect-video overflow-hidden">
-                <img src="{{ b.gambar_utama.url }}" alt="{{ b.judul }}"
-                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                {% picture b.gambar_utama alt=b.judul classes="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" %}
             </div>
             {% endif %}
             <div class="p-5">

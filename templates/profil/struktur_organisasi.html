@@ -1,6 +1,7 @@
 {% extends "base_public.html" %}
-{% load static %}
+{% load static image_tags %}
 {% block title %}Struktur Organisasi - PK IMM FTIK UMKO{% endblock %}
+{% block meta_description %}Struktur kepengurusan PK IMM FTIK Universitas Muhammadiyah Kotabumi — Ketua Umum, Sekretaris, Bendahara, dan bidang-bidang.{% endblock %}
 
 {% block content %}
 <!-- Header Section -->
@@ -40,8 +41,7 @@
                     <div class="p-6 text-center">
                         <div class="relative inline-block mb-4">
                             {% if p.foto_profil %}
-                            <img src="{{ p.foto_profil.url }}" alt="{{ p.nama_lengkap }}"
-                                 class="w-28 h-28 {% if p.jabatan_struktural == 'ketua_umum' %}w-36 h-36{% endif %} rounded-full object-cover mx-auto border-4 {% if p.jabatan_struktural == 'ketua_umum' %}border-gold{% else %}border-maroon/30{% endif %} shadow-lg">
+                            {% picture p.foto_profil alt=p.nama_lengkap classes="w-28 h-28 rounded-full object-cover mx-auto border-4 border-maroon/30 shadow-lg" loading="lazy" %}
                             {% else %}
                             <div class="w-28 h-28 {% if p.jabatan_struktural == 'ketua_umum' %}w-36 h-36{% endif %} rounded-full bg-gradient-to-br from-maroon to-maroon-accent mx-auto flex items-center justify-center border-4 {% if p.jabatan_struktural == 'ketua_umum' %}border-gold{% else %}border-maroon/30{% endif %} shadow-lg">
                                 <span class="text-white font-bold text-2xl {% if p.jabatan_struktural == 'ketua_umum' %}text-3xl{% endif %}">{{ p.nama_lengkap|first|upper }}</span>
@@ -102,8 +102,7 @@
                     <div class="p-5 flex items-center gap-4">
                         {% if bidang.ketua %}
                         {% if bidang.ketua.foto_profil %}
-                        <img src="{{ bidang.ketua.foto_profil.url }}" alt="{{ bidang.ketua.nama_lengkap }}"
-                             class="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0">
+                        {% picture bidang.ketua.foto_profil alt=bidang.ketua.nama_lengkap classes="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0" loading="lazy" %}
                         {% else %}
                         <div class="w-16 h-16 rounded-full bg-gradient-to-br from-maroon to-maroon-accent flex items-center justify-center border-2 border-maroon/20 shadow flex-shrink-0">
                             <span class="text-white font-bold text-lg">{{ bidang.ketua.nama_lengkap|first|upper }}</span>
@@ -127,8 +126,7 @@
                     <div class="p-5 flex items-center gap-4">
                         {% if bidang.sekretaris %}
                         {% if bidang.sekretaris.foto_profil %}
-                        <img src="{{ bidang.sekretaris.foto_profil.url }}" alt="{{ bidang.sekretaris.nama_lengkap }}"
-                             class="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0">
+                        {% picture bidang.sekretaris.foto_profil alt=bidang.sekretaris.nama_lengkap classes="w-16 h-16 rounded-full object-cover border-2 border-maroon/20 shadow flex-shrink-0" loading="lazy" %}
                         {% else %}
                         <div class="w-16 h-16 rounded-full bg-gradient-to-br from-maroon-accent to-maroon flex items-center justify-center border-2 border-maroon/20 shadow flex-shrink-0">
                             <span class="text-white font-bold text-lg">{{ bidang.sekretaris.nama_lengkap|first|upper }}</span>

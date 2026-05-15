@@ -2,7 +2,10 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import require_GET
 
 from apps.accounts.admin_urls import urlpatterns as user_admin_urls
 from apps.berita.urls import api_urlpatterns as berita_api_urls
@@ -23,7 +26,28 @@ from apps.pendaftaran.views import AdminDashboardView
 from apps.penilaian.urls import admin_urlpatterns as penilaian_admin_urls
 from apps.penilaian.urls import panitia_urlpatterns as panitia_urls
 
+@require_GET
+@cache_control(max_age=86400, public=True)
+def robots_txt(request):
+    """robots.txt standar untuk crawler search engine."""
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin-dashboard/",
+        "Disallow: /django-admin/",
+        "Disallow: /accounts/login/",
+        "Disallow: /accounts/register/",
+        "Disallow: /accounts/forgot-password/",
+        "Disallow: /accounts/reset-password/",
+        "Disallow: /api/",
+        "Disallow: /chatbot/api/",
+        "",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
+
+
 urlpatterns = [
+    path('robots.txt', robots_txt, name='robots_txt'),
     path('django-admin/', admin.site.urls),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     # Halaman beranda publik

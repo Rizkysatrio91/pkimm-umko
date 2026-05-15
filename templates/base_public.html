@@ -1,17 +1,34 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PK IMM FTIK UMKO{% endblock %}</title>
-    {% load static %}
+
+    <meta name="description" content="{% block meta_description %}Sistem manajemen Pimpinan Komisariat IMM Fakultas Teknologi Informasi & Komputer (FTIK) Universitas Muhammadiyah Kotabumi. Pendaftaran kader, absensi QR, asisten virtual AI, dan informasi kegiatan organisasi.{% endblock %}">
+    <meta name="keywords" content="PK IMM FTIK UMKO, IMM Kotabumi, Ikatan Mahasiswa Muhammadiyah, kader IMM, pendaftaran IMM">
+    <meta name="author" content="PK IMM FTIK UMKO">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}{{ block.super|default:'PK IMM FTIK UMKO' }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Sistem manajemen PK IMM FTIK UMKO — pendaftaran kader, absensi, dan chatbot AI.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'images/logo_pk_imm_ftik.png' %}{% endblock %}">
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <meta property="og:site_name" content="PK IMM FTIK UMKO">
+    <meta property="og:locale" content="id_ID">
+
+    <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
+    <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     <style>
         body { font-family: 'Times New Roman', Times, serif; color: #000000; }
     </style>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
-    <link rel="stylesheet" href="/static/css/custom.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="h-full bg-cream" x-data="{ mobileMenu: false, scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 50)">
@@ -50,8 +67,8 @@
                         <a href="{% url 'accounts:login' %}" class="bg-white/10 border border-white/30 text-white px-4 py-1.5 rounded-full font-semibold text-sm hover:bg-white/20 transition">Login</a>
                     {% endif %}
                 </div>
-                <button @click="mobileMenu = !mobileMenu" class="md:hidden text-white p-1">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="mobileMenu = !mobileMenu" class="md:hidden text-white p-1" aria-label="Buka menu navigasi">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path x-show="!mobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         <path x-show="mobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
