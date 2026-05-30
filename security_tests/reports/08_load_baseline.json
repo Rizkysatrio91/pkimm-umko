@@ -1,0 +1,186 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "/: status 200": {
+                    "name": "/: status 200",
+                    "path": "::/: status 200",
+                    "id": "ba7c7fe27071bfa43bb26c5863bc2c8b",
+                    "passes": 51,
+                    "fails": 0
+                },
+                "/: ada konten (body > 500 byte)": {
+                    "path": "::/: ada konten (body > 500 byte)",
+                    "id": "8d60df113e3dcb05283d8365630c4669",
+                    "passes": 51,
+                    "fails": 0,
+                    "name": "/: ada konten (body > 500 byte)"
+                },
+                "/berita/: status 200": {
+                    "name": "/berita/: status 200",
+                    "path": "::/berita/: status 200",
+                    "id": "4f825122d4a4e48811bc8fcb96c38545",
+                    "passes": 49,
+                    "fails": 0
+                },
+                "/berita/: ada konten (body > 500 byte)": {
+                    "name": "/berita/: ada konten (body > 500 byte)",
+                    "path": "::/berita/: ada konten (body > 500 byte)",
+                    "id": "e6b3745d4b1da963835ad4820bcea9fd",
+                    "passes": 49,
+                    "fails": 0
+                },
+                "/profil/sejarah/: status 200": {
+                    "passes": 51,
+                    "fails": 0,
+                    "name": "/profil/sejarah/: status 200",
+                    "path": "::/profil/sejarah/: status 200",
+                    "id": "43589885b321878a305cbed2a6e840c4"
+                },
+                "/profil/sejarah/: ada konten (body > 500 byte)": {
+                    "name": "/profil/sejarah/: ada konten (body > 500 byte)",
+                    "path": "::/profil/sejarah/: ada konten (body > 500 byte)",
+                    "id": "2efb3b8b7b50c29174ddd96c4e6dd153",
+                    "passes": 51,
+                    "fails": 0
+                },
+                "/profil/visi-misi/: status 200": {
+                    "name": "/profil/visi-misi/: status 200",
+                    "path": "::/profil/visi-misi/: status 200",
+                    "id": "9732f9a1aa52adfc4d4b485974b64467",
+                    "passes": 47,
+                    "fails": 0
+                },
+                "/profil/visi-misi/: ada konten (body > 500 byte)": {
+                    "name": "/profil/visi-misi/: ada konten (body > 500 byte)",
+                    "path": "::/profil/visi-misi/: ada konten (body > 500 byte)",
+                    "id": "85f15d15a98d65cb3298e3a43c35e107",
+                    "passes": 47,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "http_req_tls_handshaking": {
+            "avg": 4.86535202020202,
+            "min": 0,
+            "med": 0,
+            "max": 138.0828,
+            "p(90)": 0,
+            "p(95)": 10.717619999998375
+        },
+        "http_req_receiving": {
+            "p(95)": 187.28654999999986,
+            "avg": 65.96913282828282,
+            "min": 0,
+            "med": 39.37875,
+            "max": 674.9017,
+            "p(90)": 132.70483000000002
+        },
+        "iteration_duration": {
+            "max": 3323.5959,
+            "p(90)": 2957.16513,
+            "p(95)": 3066.023275,
+            "avg": 2175.311909090909,
+            "min": 1145.2007,
+            "med": 2188.3221
+        },
+        "data_received": {
+            "count": 3158186,
+            "rate": 35055.337540896755
+        },
+        "http_req_failed": {
+            "fails": 198,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "checks": {
+            "passes": 396,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.95": false
+            },
+            "value": 1
+        },
+        "http_req_waiting": {
+            "p(95)": 158.0457399999999,
+            "avg": 101.23018838383841,
+            "min": 55.2371,
+            "med": 88.61475,
+            "max": 591.4451,
+            "p(90)": 123.74564000000001
+        },
+        "data_sent": {
+            "count": 65139,
+            "rate": 723.0320291700594
+        },
+        "http_req_duration": {
+            "med": 139.70965,
+            "max": 819.5639,
+            "p(90)": 233.67870000000005,
+            "p(95)": 328.6770499999995,
+            "avg": 167.20126010101012,
+            "min": 71.3505,
+            "thresholds": {
+                "p(95)<3000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 167.20126010101012,
+            "min": 71.3505,
+            "med": 139.70965,
+            "max": 819.5639,
+            "p(90)": 233.67870000000005,
+            "p(95)": 328.6770499999995
+        },
+        "http_req_sending": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.001938888888888889,
+            "min": 0,
+            "med": 0,
+            "max": 0.3839
+        },
+        "iterations": {
+            "rate": 2.197766956441944,
+            "count": 198
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_reqs": {
+            "count": 198,
+            "rate": 2.197766956441944
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 10
+        },
+        "http_req_connecting": {
+            "avg": 2.993581313131313,
+            "min": 0,
+            "med": 0,
+            "max": 69.3426,
+            "p(90)": 0,
+            "p(95)": 7.018694999998936
+        },
+        "http_req_blocked": {
+            "avg": 7.931230303030302,
+            "min": 0,
+            "med": 0,
+            "max": 208.7339,
+            "p(90)": 0,
+            "p(95)": 19.812449999996996
+        }
+    }
+}

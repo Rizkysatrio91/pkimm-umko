@@ -1,0 +1,172 @@
+{
+    "root_group": {
+        "checks": {
+            "[CRIT] /accounts/login/: CSRF wajib ditolak (status 403)": {
+                "fails": 0,
+                "name": "[CRIT] /accounts/login/: CSRF wajib ditolak (status 403)",
+                "path": "::[CRIT] /accounts/login/: CSRF wajib ditolak (status 403)",
+                "id": "f6ae550365de90ad91d1be95b6b621d9",
+                "passes": 1
+            },
+            "[INFO] /accounts/login/: tidak crash 500": {
+                "passes": 1,
+                "fails": 0,
+                "name": "[INFO] /accounts/login/: tidak crash 500",
+                "path": "::[INFO] /accounts/login/: tidak crash 500",
+                "id": "2d6c6fed873639b4b2ff105e73d5bac2"
+            },
+            "[CRIT] /accounts/register/: CSRF wajib ditolak (status 403)": {
+                "name": "[CRIT] /accounts/register/: CSRF wajib ditolak (status 403)",
+                "path": "::[CRIT] /accounts/register/: CSRF wajib ditolak (status 403)",
+                "id": "dbe899835be39bc6a615d116038d7f81",
+                "passes": 1,
+                "fails": 0
+            },
+            "[INFO] /accounts/register/: tidak crash 500": {
+                "passes": 1,
+                "fails": 0,
+                "name": "[INFO] /accounts/register/: tidak crash 500",
+                "path": "::[INFO] /accounts/register/: tidak crash 500",
+                "id": "4f9e8c4d222558cb8deeeab88d18bf4d"
+            },
+            "[CRIT] /accounts/forgot-password/: CSRF wajib ditolak (status 403)": {
+                "fails": 0,
+                "name": "[CRIT] /accounts/forgot-password/: CSRF wajib ditolak (status 403)",
+                "path": "::[CRIT] /accounts/forgot-password/: CSRF wajib ditolak (status 403)",
+                "id": "1ebf3c88be569be2f2f28f14565db618",
+                "passes": 1
+            },
+            "[INFO] /accounts/forgot-password/: tidak crash 500": {
+                "path": "::[INFO] /accounts/forgot-password/: tidak crash 500",
+                "id": "364acf5f76c25385161217011afe0d79",
+                "passes": 1,
+                "fails": 0,
+                "name": "[INFO] /accounts/forgot-password/: tidak crash 500"
+            },
+            "[CRIT] /chatbot/api/send/: CSRF wajib ditolak (status 403)": {
+                "name": "[CRIT] /chatbot/api/send/: CSRF wajib ditolak (status 403)",
+                "path": "::[CRIT] /chatbot/api/send/: CSRF wajib ditolak (status 403)",
+                "id": "32185cb6ab98d094b8ec1039353a278f",
+                "passes": 1,
+                "fails": 0
+            },
+            "[INFO] /chatbot/api/send/: tidak crash 500": {
+                "name": "[INFO] /chatbot/api/send/: tidak crash 500",
+                "path": "::[INFO] /chatbot/api/send/: tidak crash 500",
+                "id": "db213a258a47b6bbc962980ef78cfb21",
+                "passes": 1,
+                "fails": 0
+            },
+            "[CRIT] /pendaftaran/absensi/validate/: CSRF wajib ditolak (status 403)": {
+                "name": "[CRIT] /pendaftaran/absensi/validate/: CSRF wajib ditolak (status 403)",
+                "path": "::[CRIT] /pendaftaran/absensi/validate/: CSRF wajib ditolak (status 403)",
+                "id": "eee05b98cf668dea0b9d0656a97dfd48",
+                "passes": 1,
+                "fails": 0
+            },
+            "[INFO] /pendaftaran/absensi/validate/: tidak crash 500": {
+                "name": "[INFO] /pendaftaran/absensi/validate/: tidak crash 500",
+                "path": "::[INFO] /pendaftaran/absensi/validate/: tidak crash 500",
+                "id": "426ede24eaeb42d1be232728c7b6f246",
+                "passes": 1,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {}
+    },
+    "metrics": {
+        "http_req_tls_handshaking": {
+            "avg": 45.19994,
+            "min": 0,
+            "med": 0,
+            "max": 225.9997,
+            "p(90)": 135.59982000000002,
+            "p(95)": 180.79975999999996
+        },
+        "http_req_receiving": {
+            "p(90)": 0.94618,
+            "p(95)": 0.9677399999999999,
+            "avg": 0.45146,
+            "min": 0,
+            "med": 0.3865,
+            "max": 0.9893
+        },
+        "data_sent": {
+            "count": 3388,
+            "rate": 4636.405499368106
+        },
+        "http_req_blocked": {
+            "avg": 60.60209999999999,
+            "min": 0,
+            "med": 0,
+            "max": 303.0105,
+            "p(90)": 181.80630000000002,
+            "p(95)": 242.40839999999994
+        },
+        "data_received": {
+            "count": 12500,
+            "rate": 17105.982509475005
+        },
+        "iterations": {
+            "count": 1,
+            "rate": 1.3684786007580003
+        },
+        "http_reqs": {
+            "rate": 6.842393003790002,
+            "count": 5
+        },
+        "http_req_duration": {
+            "med": 83.9931,
+            "max": 104.225,
+            "p(90)": 102.11076,
+            "p(95)": 103.16788,
+            "avg": 84.87434,
+            "min": 66.4908
+        },
+        "http_req_sending": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "http_req_failed": {
+            "passes": 5,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_waiting": {
+            "med": 83.9931,
+            "max": 103.8385,
+            "p(90)": 101.52626,
+            "p(95)": 102.68238,
+            "avg": 84.42287999999999,
+            "min": 65.5015
+        },
+        "checks": {
+            "passes": 10,
+            "fails": 0,
+            "value": 1
+        },
+        "iteration_duration": {
+            "p(95)": 730.2292,
+            "avg": 730.2292,
+            "min": 730.2292,
+            "med": 730.2292,
+            "max": 730.2292,
+            "p(90)": 730.2292
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 58.2686,
+            "p(90)": 34.96116000000001,
+            "p(95)": 46.61487999999999,
+            "avg": 11.65372,
+            "min": 0
+        }
+    }
+}

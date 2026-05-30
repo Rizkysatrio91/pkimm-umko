@@ -1,0 +1,255 @@
+{
+    "metrics": {
+        "http_req_waiting": {
+            "p(90)": 114.86948000000001,
+            "p(95)": 128.688045,
+            "avg": 91.8504575,
+            "min": 63.9229,
+            "med": 90.97165,
+            "max": 159.8199
+        },
+        "http_req_sending": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.052149999999999995,
+            "min": 0,
+            "med": 0,
+            "max": 2.086
+        },
+        "data_sent": {
+            "count": 11946,
+            "rate": 661.8014454727462
+        },
+        "data_received": {
+            "count": 675708,
+            "rate": 37433.82982734793
+        },
+        "iteration_duration": {
+            "min": 3510.3089,
+            "med": 3550.8713,
+            "max": 3811.6166,
+            "p(90)": 3752.2426,
+            "p(95)": 3781.9296,
+            "avg": 3610.0335999999998
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 137.509,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 3.4377249999999995
+        },
+        "iterations": {
+            "count": 5,
+            "rate": 0.27699708918162824
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 145.17384499999997,
+            "min": 72.2784,
+            "med": 130.3245,
+            "max": 294.6674,
+            "p(90)": 216.89525000000003,
+            "p(95)": 266.35991999999993
+        },
+        "http_req_duration": {
+            "min": 72.2784,
+            "med": 130.3245,
+            "max": 294.6674,
+            "p(90)": 216.89525000000003,
+            "p(95)": 266.35991999999993,
+            "avg": 145.17384499999997,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "http_req_failed": {
+            "fails": 40,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_receiving": {
+            "avg": 53.271237500000005,
+            "min": 2.4614,
+            "med": 35.234899999999996,
+            "max": 183.1017,
+            "p(90)": 111.39239,
+            "p(95)": 136.16335999999993
+        },
+        "vus": {
+            "min": 1,
+            "max": 1,
+            "value": 1
+        },
+        "checks": {
+            "passes": 90,
+            "fails": 0,
+            "thresholds": {
+                "rate==1.0": false
+            },
+            "value": 1
+        },
+        "vus_max": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "http_req_blocked": {
+            "min": 0,
+            "med": 0,
+            "max": 208.5411,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 5.2135275
+        },
+        "http_reqs": {
+            "count": 40,
+            "rate": 2.215976713453026
+        },
+        "http_req_connecting": {
+            "p(95)": 0,
+            "avg": 1.3632300000000002,
+            "min": 0,
+            "med": 0,
+            "max": 54.5292,
+            "p(90)": 0
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "Beranda: status 200": {
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "Beranda: status 200",
+                    "path": "::Beranda: status 200",
+                    "id": "9d026157e20881ad558933305436b3b6"
+                },
+                "Beranda: bukan halaman error": {
+                    "fails": 0,
+                    "name": "Beranda: bukan halaman error",
+                    "path": "::Beranda: bukan halaman error",
+                    "id": "56ba5a4f2d1e7c08eaa01f66ac776a8c",
+                    "passes": 5
+                },
+                "Daftar Berita: status 200": {
+                    "name": "Daftar Berita: status 200",
+                    "path": "::Daftar Berita: status 200",
+                    "id": "f8645da24c0dff4314152d0ef21f73ca",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Daftar Berita: bukan halaman error": {
+                    "name": "Daftar Berita: bukan halaman error",
+                    "path": "::Daftar Berita: bukan halaman error",
+                    "id": "127dd3c8af0e198858e45ad295c2cabe",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Visi & Misi: status 200": {
+                    "name": "Visi & Misi: status 200",
+                    "path": "::Visi & Misi: status 200",
+                    "id": "20f401819cba669a849e0bc99079494d",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Visi & Misi: bukan halaman error": {
+                    "name": "Visi & Misi: bukan halaman error",
+                    "path": "::Visi & Misi: bukan halaman error",
+                    "id": "c7397c02f4052608cef324d07091c2dc",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Sejarah: status 200": {
+                    "fails": 0,
+                    "name": "Sejarah: status 200",
+                    "path": "::Sejarah: status 200",
+                    "id": "a436010d9ee81350ea19bcf8396277ec",
+                    "passes": 5
+                },
+                "Sejarah: bukan halaman error": {
+                    "name": "Sejarah: bukan halaman error",
+                    "path": "::Sejarah: bukan halaman error",
+                    "id": "9f3ce7ae09297092e609ff01b6503cdb",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Struktur Organisasi: status 200": {
+                    "name": "Struktur Organisasi: status 200",
+                    "path": "::Struktur Organisasi: status 200",
+                    "id": "4635feeafc72282f8031df8674dfaeae",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Struktur Organisasi: bukan halaman error": {
+                    "fails": 0,
+                    "name": "Struktur Organisasi: bukan halaman error",
+                    "path": "::Struktur Organisasi: bukan halaman error",
+                    "id": "5582a1d628ddb522ec856ba3ce5acc15",
+                    "passes": 5
+                },
+                "Chatbot Publik UI: status 200": {
+                    "name": "Chatbot Publik UI: status 200",
+                    "path": "::Chatbot Publik UI: status 200",
+                    "id": "d7ff472c9fb117dab83e65ffb833594a",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Chatbot Publik UI: bukan halaman error": {
+                    "path": "::Chatbot Publik UI: bukan halaman error",
+                    "id": "ec57a02f61e18db7802947361099836f",
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "Chatbot Publik UI: bukan halaman error"
+                },
+                "Halaman Login: status 200": {
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "Halaman Login: status 200",
+                    "path": "::Halaman Login: status 200",
+                    "id": "4fe9a2d02a701aea20216093c90ae1dd"
+                },
+                "Halaman Login: bukan halaman error": {
+                    "path": "::Halaman Login: bukan halaman error",
+                    "id": "02e3959bc409ca81d8dcb800710186b8",
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "Halaman Login: bukan halaman error"
+                },
+                "Halaman Login: ada csrfmiddlewaretoken di form": {
+                    "name": "Halaman Login: ada csrfmiddlewaretoken di form",
+                    "path": "::Halaman Login: ada csrfmiddlewaretoken di form",
+                    "id": "44ff611ab6b70b4137f5f870e66403bd",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Halaman Register: status 200": {
+                    "name": "Halaman Register: status 200",
+                    "path": "::Halaman Register: status 200",
+                    "id": "d9331e98aea1ac3a623355a4ce657484",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Halaman Register: bukan halaman error": {
+                    "name": "Halaman Register: bukan halaman error",
+                    "path": "::Halaman Register: bukan halaman error",
+                    "id": "283f83879f4302ecb7e39329e16191fa",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "Halaman Register: ada csrfmiddlewaretoken di form": {
+                    "path": "::Halaman Register: ada csrfmiddlewaretoken di form",
+                    "id": "bf5f521250f02516342e1afbe2435673",
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "Halaman Register: ada csrfmiddlewaretoken di form"
+                }
+            }
+    }
+}

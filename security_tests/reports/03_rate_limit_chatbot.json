@@ -1,0 +1,141 @@
+{
+    "metrics": {
+        "http_req_blocked": {
+            "max": 240.431,
+            "p(90)": 0.05333000000000076,
+            "p(95)": 12.528185000000171,
+            "avg": 12.048215,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 20,
+            "value": 0
+        },
+        "rate_limited_chatbot": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count>=16": true
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "med": 96.8451,
+            "max": 144.2611,
+            "p(90)": 120.84289000000001,
+            "p(95)": 126.31522000000001,
+            "avg": 102.6874,
+            "min": 82.6695
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 8.082825000000115,
+            "avg": 8.082825,
+            "min": 0,
+            "med": 0,
+            "max": 161.6565,
+            "p(90)": 0
+        },
+        "http_req_sending": {
+            "avg": 0.080535,
+            "min": 0,
+            "med": 0,
+            "max": 0.5437,
+            "p(90)": 0.5301400000000001,
+            "p(95)": 0.5379999999999999
+        },
+        "http_req_duration": {
+            "p(95)": 126.31522000000001,
+            "avg": 102.6874,
+            "min": 82.6695,
+            "med": 96.8451,
+            "max": 144.2611,
+            "p(90)": 120.84289000000001
+        },
+        "data_sent": {
+            "count": 6531,
+            "rate": 2821.4912352325323
+        },
+        "iterations": {
+            "count": 20,
+            "rate": 8.64030388985617
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "openai_call_succeeded": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count<=4": false
+            }
+        },
+        "http_reqs": {
+            "count": 20,
+            "rate": 8.64030388985617
+        },
+        "data_received": {
+            "count": 249105,
+            "rate": 107617.14502413107
+        },
+        "http_req_connecting": {
+            "avg": 2.80727,
+            "min": 0,
+            "med": 0,
+            "max": 56.1454,
+            "p(90)": 0,
+            "p(95)": 2.80727000000004
+        },
+        "iteration_duration": {
+            "p(90)": 127.82552000000003,
+            "p(95)": 155.92318500000016,
+            "avg": 115.629985,
+            "min": 83.7079,
+            "med": 97.35595,
+            "max": 357.5224
+        },
+        "vus_max": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "http_req_waiting": {
+            "p(90)": 93.01326,
+            "p(95)": 94.89651500000001,
+            "avg": 74.696015,
+            "min": 48.0191,
+            "med": 73.9486,
+            "max": 98.161
+        },
+        "checks": {
+            "passes": 0,
+            "fails": 20,
+            "value": 0
+        },
+        "http_req_receiving": {
+            "p(95)": 44.11787,
+            "avg": 27.910850000000003,
+            "min": 7.8764,
+            "med": 28.2419,
+            "max": 51.438,
+            "p(90)": 39.988780000000006
+        }
+    },
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "CSRF token chatbot bisa diparse": {
+                    "name": "CSRF token chatbot bisa diparse",
+                    "path": "::CSRF token chatbot bisa diparse",
+                    "id": "5e3be264ba90bb95af398408ffe7b460",
+                    "passes": 0,
+                    "fails": 20
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

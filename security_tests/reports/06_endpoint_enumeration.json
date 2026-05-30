@@ -1,0 +1,582 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "[CRIT] /admin-dashboard/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/: tidak return 200 tanpa auth",
+                    "id": "4d246eb6987bba5b7375d74feb28545f",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/: tidak crash 500": {
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/: tidak crash 500",
+                    "id": "abe77b67268a94931120faa5e06eb1b0",
+                    "passes": 1
+                },
+                "[CRIT] /admin-dashboard/users/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/users/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/users/: tidak return 200 tanpa auth",
+                    "id": "d24d3f7df30bf2ac6ba597f4d83e2352",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/users/: tidak crash 500": {
+                    "path": "::[MED]  /admin-dashboard/users/: tidak crash 500",
+                    "id": "b6bf0250cfd5b1634717100990e64540",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/users/: tidak crash 500"
+                },
+                "[CRIT] /admin-dashboard/kader/: tidak return 200 tanpa auth": {
+                    "fails": 0,
+                    "name": "[CRIT] /admin-dashboard/kader/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/kader/: tidak return 200 tanpa auth",
+                    "id": "b13a3f81299e042eecfb8e85b746d2e4",
+                    "passes": 1
+                },
+                "[MED]  /admin-dashboard/kader/: tidak crash 500": {
+                    "path": "::[MED]  /admin-dashboard/kader/: tidak crash 500",
+                    "id": "2d6712d4d0d95a36cfb40ac4c26fac54",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/kader/: tidak crash 500"
+                },
+                "[CRIT] /admin-dashboard/pendaftaran/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/pendaftaran/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/pendaftaran/: tidak return 200 tanpa auth",
+                    "id": "6749fe224484bc7c0489ed938b45dc98",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/pendaftaran/: tidak crash 500": {
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/pendaftaran/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/pendaftaran/: tidak crash 500",
+                    "id": "8ce09d393594a674d57626d7a1b3d3ff",
+                    "passes": 1
+                },
+                "[CRIT] /admin-dashboard/periode-dad/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/periode-dad/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/periode-dad/: tidak return 200 tanpa auth",
+                    "id": "f672f770951af578d391c561bff88427",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/periode-dad/: tidak crash 500": {
+                    "id": "4173db40c49f40365f62da7f4ebfffc6",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/periode-dad/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/periode-dad/: tidak crash 500"
+                },
+                "[CRIT] /admin-dashboard/kelompok/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/kelompok/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/kelompok/: tidak return 200 tanpa auth",
+                    "id": "647fe6fef2a90af5f3199f5757d46a0d",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/kelompok/: tidak crash 500": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/kelompok/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/kelompok/: tidak crash 500",
+                    "id": "f6fbafb3c97e3281eee017a9cb592175"
+                },
+                "[CRIT] /admin-dashboard/rundown/: tidak return 200 tanpa auth": {
+                    "fails": 0,
+                    "name": "[CRIT] /admin-dashboard/rundown/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/rundown/: tidak return 200 tanpa auth",
+                    "id": "6ecc99b4a31549774f72de291b838f6e",
+                    "passes": 1
+                },
+                "[MED]  /admin-dashboard/rundown/: tidak crash 500": {
+                    "id": "e1ad69be2612d3bbe7c6be6791740b2b",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/rundown/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/rundown/: tidak crash 500"
+                },
+                "[CRIT] /admin-dashboard/chatbot/dataset/: tidak return 200 tanpa auth": {
+                    "path": "::[CRIT] /admin-dashboard/chatbot/dataset/: tidak return 200 tanpa auth",
+                    "id": "70fe477b28b835ac0f26e1921a16dcdd",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /admin-dashboard/chatbot/dataset/: tidak return 200 tanpa auth"
+                },
+                "[MED]  /admin-dashboard/chatbot/dataset/: tidak crash 500": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/chatbot/dataset/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/chatbot/dataset/: tidak crash 500",
+                    "id": "95c4d0d791a1afd58b442828392f27e2"
+                },
+                "[CRIT] /admin-dashboard/chatbot/dokumen/: tidak return 200 tanpa auth": {
+                    "path": "::[CRIT] /admin-dashboard/chatbot/dokumen/: tidak return 200 tanpa auth",
+                    "id": "0e1dc457c11c588f0df26e4d24b263e5",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /admin-dashboard/chatbot/dokumen/: tidak return 200 tanpa auth"
+                },
+                "[MED]  /admin-dashboard/chatbot/dokumen/: tidak crash 500": {
+                    "name": "[MED]  /admin-dashboard/chatbot/dokumen/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/chatbot/dokumen/: tidak crash 500",
+                    "id": "c7f3912f8bdb7591c7c04e29b24febcc",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /admin-dashboard/profil/sambutan/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/profil/sambutan/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/profil/sambutan/: tidak return 200 tanpa auth",
+                    "id": "84e6c0f0b5397d6de116bae0289d38fb",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/profil/sambutan/: tidak crash 500": {
+                    "id": "1a118bc73797d56715eddcce9e357162",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/profil/sambutan/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/profil/sambutan/: tidak crash 500"
+                },
+                "[CRIT] /admin-dashboard/laporan/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /admin-dashboard/laporan/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /admin-dashboard/laporan/: tidak return 200 tanpa auth",
+                    "id": "346ea9c975ac32c4434bdda46ee1152c",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /admin-dashboard/laporan/: tidak crash 500": {
+                    "name": "[MED]  /admin-dashboard/laporan/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/laporan/: tidak crash 500",
+                    "id": "a72f8b81acba94ca5c2b3b272bc23723",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /admin-dashboard/kelulusan/: tidak return 200 tanpa auth": {
+                    "path": "::[CRIT] /admin-dashboard/kelulusan/: tidak return 200 tanpa auth",
+                    "id": "33da420fd09d7b1a4c35e5e1658ca45f",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /admin-dashboard/kelulusan/: tidak return 200 tanpa auth"
+                },
+                "[MED]  /admin-dashboard/kelulusan/: tidak crash 500": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /admin-dashboard/kelulusan/: tidak crash 500",
+                    "path": "::[MED]  /admin-dashboard/kelulusan/: tidak crash 500",
+                    "id": "83479e65008ab8a40f9888e0ae805301"
+                },
+                "[CRIT] /panitia/dashboard/: tidak return 200 tanpa auth": {
+                    "id": "599a13d4cdaa6bca153346ce04ee8374",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /panitia/dashboard/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /panitia/dashboard/: tidak return 200 tanpa auth"
+                },
+                "[MED]  /panitia/dashboard/: tidak crash 500": {
+                    "name": "[MED]  /panitia/dashboard/: tidak crash 500",
+                    "path": "::[MED]  /panitia/dashboard/: tidak crash 500",
+                    "id": "8112b8a46bbf509ab931424b1238dc52",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /panitia/interview/: tidak return 200 tanpa auth": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /panitia/interview/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /panitia/interview/: tidak return 200 tanpa auth",
+                    "id": "5e486845ce27c3e8a248fe117e7fe5c6"
+                },
+                "[MED]  /panitia/interview/: tidak crash 500": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /panitia/interview/: tidak crash 500",
+                    "path": "::[MED]  /panitia/interview/: tidak crash 500",
+                    "id": "ab00d6da6fac4be3ea23926fca5b73ac"
+                },
+                "[CRIT] /panitia/aktivitas/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /panitia/aktivitas/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /panitia/aktivitas/: tidak return 200 tanpa auth",
+                    "id": "2dc48024f661796087f30319641b6b74",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /panitia/aktivitas/: tidak crash 500": {
+                    "id": "869fb6265a87826089fdeea413f71546",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /panitia/aktivitas/: tidak crash 500",
+                    "path": "::[MED]  /panitia/aktivitas/: tidak crash 500"
+                },
+                "[CRIT] /panitia/absensi/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /panitia/absensi/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /panitia/absensi/: tidak return 200 tanpa auth",
+                    "id": "d43af35791cf50aee2536e78313832ab",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /panitia/absensi/: tidak crash 500": {
+                    "name": "[MED]  /panitia/absensi/: tidak crash 500",
+                    "path": "::[MED]  /panitia/absensi/: tidak crash 500",
+                    "id": "791c8c0f336fd15043cd46c2ce307c68",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /penulis/dashboard/: tidak return 200 tanpa auth": {
+                    "fails": 0,
+                    "name": "[CRIT] /penulis/dashboard/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /penulis/dashboard/: tidak return 200 tanpa auth",
+                    "id": "54482e6074871146105ac24f18dc3cf9",
+                    "passes": 1
+                },
+                "[MED]  /penulis/dashboard/: tidak crash 500": {
+                    "name": "[MED]  /penulis/dashboard/: tidak crash 500",
+                    "path": "::[MED]  /penulis/dashboard/: tidak crash 500",
+                    "id": "b2c44c0507a698a946b47d46e5faf0a5",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /penulis/berita/tulis/: tidak return 200 tanpa auth": {
+                    "id": "5da01cc2b46201dbed2374ac2dfc5356",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /penulis/berita/tulis/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /penulis/berita/tulis/: tidak return 200 tanpa auth"
+                },
+                "[MED]  /penulis/berita/tulis/: tidak crash 500": {
+                    "name": "[MED]  /penulis/berita/tulis/: tidak crash 500",
+                    "path": "::[MED]  /penulis/berita/tulis/: tidak crash 500",
+                    "id": "f43ef8cf160d7a82196cf98c3a385caa",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /kader/dashboard/: tidak return 200 tanpa auth": {
+                    "fails": 0,
+                    "name": "[CRIT] /kader/dashboard/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /kader/dashboard/: tidak return 200 tanpa auth",
+                    "id": "8a94902e4048549ae344df6b3be8fcc8",
+                    "passes": 1
+                },
+                "[MED]  /kader/dashboard/: tidak crash 500": {
+                    "id": "acdf768b768127077a589a8938ee562b",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /kader/dashboard/: tidak crash 500",
+                    "path": "::[MED]  /kader/dashboard/: tidak crash 500"
+                },
+                "[CRIT] /kader/biodata/: tidak return 200 tanpa auth": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /kader/biodata/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /kader/biodata/: tidak return 200 tanpa auth",
+                    "id": "c10e77abb861a60eace6045e7884fba2"
+                },
+                "[MED]  /kader/biodata/: tidak crash 500": {
+                    "name": "[MED]  /kader/biodata/: tidak crash 500",
+                    "path": "::[MED]  /kader/biodata/: tidak crash 500",
+                    "id": "b4d8a530cf17af3a1a277bce7b45dc34",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /notifikasi/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /notifikasi/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /notifikasi/: tidak return 200 tanpa auth",
+                    "id": "d89589223525a3df4a8fde7c8357216d",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /notifikasi/: tidak crash 500": {
+                    "fails": 0,
+                    "name": "[MED]  /notifikasi/: tidak crash 500",
+                    "path": "::[MED]  /notifikasi/: tidak crash 500",
+                    "id": "dccbccfa853e05b6664cef3a2475e695",
+                    "passes": 1
+                },
+                "[CRIT] /django-admin/: tidak return 200 tanpa auth": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /django-admin/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /django-admin/: tidak return 200 tanpa auth",
+                    "id": "1c96c7af1ce30b0a6cf99cf5b3118f80"
+                },
+                "[MED]  /django-admin/: tidak crash 500": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  /django-admin/: tidak crash 500",
+                    "path": "::[MED]  /django-admin/: tidak crash 500",
+                    "id": "6a8f68386b79df3c3609e2ec2e1a0fdd"
+                },
+                "[CRIT] /accounts/profile/: tidak return 200 tanpa auth": {
+                    "name": "[CRIT] /accounts/profile/: tidak return 200 tanpa auth",
+                    "path": "::[CRIT] /accounts/profile/: tidak return 200 tanpa auth",
+                    "id": "b29900b0d01fa1162f4e247ad04f5694",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[MED]  /accounts/profile/: tidak crash 500": {
+                    "fails": 0,
+                    "name": "[MED]  /accounts/profile/: tidak crash 500",
+                    "path": "::[MED]  /accounts/profile/: tidak crash 500",
+                    "id": "8ae01488b13d1450bd170ad3152d24bd",
+                    "passes": 1
+                },
+                "[CRIT] /.env: tidak exposed (status 404)": {
+                    "id": "da48c16c714fbda69c5b98d3f436cb44",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /.env: tidak exposed (status 404)",
+                    "path": "::[CRIT] /.env: tidak exposed (status 404)"
+                },
+                "[CRIT] /.git/config: tidak exposed (status 404)": {
+                    "path": "::[CRIT] /.git/config: tidak exposed (status 404)",
+                    "id": "c247ed4b356d8a4f678b7fc7e2196e96",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /.git/config: tidak exposed (status 404)"
+                },
+                "[CRIT] /.git/HEAD: tidak exposed (status 404)": {
+                    "name": "[CRIT] /.git/HEAD: tidak exposed (status 404)",
+                    "path": "::[CRIT] /.git/HEAD: tidak exposed (status 404)",
+                    "id": "8bf8d6d1000f7c3daf3833f164eaabff",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /manage.py: tidak exposed (status 404)": {
+                    "path": "::[CRIT] /manage.py: tidak exposed (status 404)",
+                    "id": "c84b1a88b06c1e8527e4807b53eccaca",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /manage.py: tidak exposed (status 404)"
+                },
+                "[CRIT] /config/settings/base.py: tidak exposed (status 404)": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /config/settings/base.py: tidak exposed (status 404)",
+                    "path": "::[CRIT] /config/settings/base.py: tidak exposed (status 404)",
+                    "id": "76ce5a57e0bb9e54fa361fbc3778b6b2"
+                },
+                "[CRIT] /config/settings/production.py: tidak exposed (status 404)": {
+                    "name": "[CRIT] /config/settings/production.py: tidak exposed (status 404)",
+                    "path": "::[CRIT] /config/settings/production.py: tidak exposed (status 404)",
+                    "id": "b4e119edf01fe136e63361cee58e7d63",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /requirements.txt: tidak exposed (status 404)": {
+                    "name": "[CRIT] /requirements.txt: tidak exposed (status 404)",
+                    "path": "::[CRIT] /requirements.txt: tidak exposed (status 404)",
+                    "id": "319be0553d946b01e33c341f4f4cdc65",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /db.sqlite3: tidak exposed (status 404)": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /db.sqlite3: tidak exposed (status 404)",
+                    "path": "::[CRIT] /db.sqlite3: tidak exposed (status 404)",
+                    "id": "fa80b525de150c851d9f7cd601f04018"
+                },
+                "[CRIT] /media/dokumen_pengetahuan/: tidak exposed (status 403)": {
+                    "name": "[CRIT] /media/dokumen_pengetahuan/: tidak exposed (status 403)",
+                    "path": "::[CRIT] /media/dokumen_pengetahuan/: tidak exposed (status 403)",
+                    "id": "c16a186fd1e4f5d96dbe24b65fb7fc2a",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /static/: tidak exposed (status 403)": {
+                    "fails": 0,
+                    "name": "[CRIT] /static/: tidak exposed (status 403)",
+                    "path": "::[CRIT] /static/: tidak exposed (status 403)",
+                    "id": "61b2dc939447875eaa1ab2daaf60e233",
+                    "passes": 1
+                },
+                "[CRIT] /api/: tidak exposed (status 404)": {
+                    "fails": 0,
+                    "name": "[CRIT] /api/: tidak exposed (status 404)",
+                    "path": "::[CRIT] /api/: tidak exposed (status 404)",
+                    "id": "55cafb8fb144ec7f089fbc8a294e4848",
+                    "passes": 1
+                },
+                "[CRIT] /__debug__/: tidak exposed (status 404)": {
+                    "name": "[CRIT] /__debug__/: tidak exposed (status 404)",
+                    "path": "::[CRIT] /__debug__/: tidak exposed (status 404)",
+                    "id": "b70ba9e04d2e21877317919587bc0d4d",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /swagger/: tidak exposed (status 404)": {
+                    "fails": 0,
+                    "name": "[CRIT] /swagger/: tidak exposed (status 404)",
+                    "path": "::[CRIT] /swagger/: tidak exposed (status 404)",
+                    "id": "eef33cef40a851f4ca0658c0649ff8d1",
+                    "passes": 1
+                },
+                "[CRIT] /redoc/: tidak exposed (status 404)": {
+                    "name": "[CRIT] /redoc/: tidak exposed (status 404)",
+                    "path": "::[CRIT] /redoc/: tidak exposed (status 404)",
+                    "id": "30dff65fa9e9f743989dba4e064aa11a",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /server-status: tidak exposed (status 404)": {
+                    "name": "[CRIT] /server-status: tidak exposed (status 404)",
+                    "path": "::[CRIT] /server-status: tidak exposed (status 404)",
+                    "id": "321ec7d5a5675b98323b4b17deb450cf",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /server-info: tidak exposed (status 404)": {
+                    "name": "[CRIT] /server-info: tidak exposed (status 404)",
+                    "path": "::[CRIT] /server-info: tidak exposed (status 404)",
+                    "id": "a57801e8a63437e919e745cb8a9a0033",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /.DS_Store: tidak exposed (status 404)": {
+                    "name": "[CRIT] /.DS_Store: tidak exposed (status 404)",
+                    "path": "::[CRIT] /.DS_Store: tidak exposed (status 404)",
+                    "id": "201f2332a39916a77e6ca32cc258aabc",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] /wp-admin/: tidak exposed (status 404)": {
+                    "path": "::[CRIT] /wp-admin/: tidak exposed (status 404)",
+                    "id": "c107d5f29ef2ea6ab92c21405c022c57",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /wp-admin/: tidak exposed (status 404)"
+                },
+                "[CRIT] /phpmyadmin/: tidak exposed (status 404)": {
+                    "path": "::[CRIT] /phpmyadmin/: tidak exposed (status 404)",
+                    "id": "91ed5f179dec04c6f6ac80b2205229ea",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] /phpmyadmin/: tidak exposed (status 404)"
+                },
+                "[CRIT] DEBUG=True tidak boleh aktif di production": {
+                    "path": "::[CRIT] DEBUG=True tidak boleh aktif di production",
+                    "id": "6a64ad363fde86f7c2982340f48542b7",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] DEBUG=True tidak boleh aktif di production"
+                }
+            }
+    },
+    "metrics": {
+        "vus": {
+            "min": 1,
+            "max": 1,
+            "value": 1
+        },
+        "data_sent": {
+            "count": 12622,
+            "rate": 3694.851516264958
+        },
+        "iteration_duration": {
+            "p(95)": 3416.1048,
+            "avg": 3416.1048,
+            "min": 3416.1048,
+            "med": 3416.1048,
+            "max": 3416.1048,
+            "p(90)": 3416.1048
+        },
+        "http_req_sending": {
+            "p(95)": 0.45692999999999934,
+            "avg": 0.03734883720930233,
+            "min": 0,
+            "med": 0,
+            "max": 0.5643,
+            "p(90)": 0
+        },
+        "http_req_waiting": {
+            "p(90)": 79.8863,
+            "p(95)": 85.23491999999999,
+            "avg": 69.91857441860468,
+            "min": 46.3476,
+            "med": 69.5987,
+            "max": 104.2532
+        },
+        "http_req_tls_handshaking": {
+            "avg": 3.5186418604651166,
+            "min": 0,
+            "med": 0,
+            "max": 151.3016,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "checks": {
+            "passes": 66,
+            "fails": 0,
+            "value": 1
+        },
+        "vus_max": {
+            "min": 1,
+            "max": 1,
+            "value": 1
+        },
+        "iterations": {
+            "count": 1,
+            "rate": 0.2927310660960987
+        },
+        "data_received": {
+            "rate": 12648.323903880233,
+            "count": 43208
+        },
+        "http_req_blocked": {
+            "p(95)": 0,
+            "avg": 5.9836302325581405,
+            "min": 0,
+            "med": 0,
+            "max": 257.2961,
+            "p(90)": 0
+        },
+        "http_reqs": {
+            "count": 43,
+            "rate": 12.587435842132244
+        },
+        "http_req_duration": {
+            "avg": 72.65812558139537,
+            "min": 57.6491,
+            "med": 72.4712,
+            "max": 105.515,
+            "p(90)": 80.64738,
+            "p(95)": 89.13202999999999
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 1.7601906976744184,
+            "min": 0,
+            "med": 0,
+            "max": 75.6882
+        },
+        "http_req_failed": {
+            "passes": 20,
+            "fails": 23,
+            "value": 0.46511627906976744
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 57.6491,
+            "med": 72.4712,
+            "max": 105.515,
+            "p(90)": 79.42528,
+            "p(95)": 88.44691999999998,
+            "avg": 71.4783347826087
+        },
+        "http_req_receiving": {
+            "p(95)": 13.06514,
+            "avg": 2.7022023255813945,
+            "min": 0,
+            "med": 0.5603,
+            "max": 13.7072,
+            "p(90)": 9.543280000000005
+        }
+    }
+}

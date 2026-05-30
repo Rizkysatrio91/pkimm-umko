@@ -1,0 +1,173 @@
+{
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "[CRIT] X-Frame-Options di-set (anti clickjacking)": {
+                    "id": "3ba1136e240fea736b070dd97bab5b40",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[CRIT] X-Frame-Options di-set (anti clickjacking)",
+                    "path": "::[CRIT] X-Frame-Options di-set (anti clickjacking)"
+                },
+                "[MED]  X-Content-Type-Options: nosniff": {
+                    "name": "[MED]  X-Content-Type-Options: nosniff",
+                    "path": "::[MED]  X-Content-Type-Options: nosniff",
+                    "id": "ea83a350a49decde7cc01b362634c1b5",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[CRIT] HSTS aktif (jika HTTPS)": {
+                    "name": "[CRIT] HSTS aktif (jika HTTPS)",
+                    "path": "::[CRIT] HSTS aktif (jika HTTPS)",
+                    "id": "2c7b194c32c5259da0e2ad96f5092a4d",
+                    "passes": 1,
+                    "fails": 0
+                },
+                "[HIGH] HSTS includeSubDomains (jika HTTPS)": {
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[HIGH] HSTS includeSubDomains (jika HTTPS)",
+                    "path": "::[HIGH] HSTS includeSubDomains (jika HTTPS)",
+                    "id": "387deafe6afc5875715cb0c3a49f903a"
+                },
+                "[MED]  Referrer-Policy di-set": {
+                    "id": "3e55f94590e2fdaa1ca154cfab5018d6",
+                    "passes": 1,
+                    "fails": 0,
+                    "name": "[MED]  Referrer-Policy di-set",
+                    "path": "::[MED]  Referrer-Policy di-set"
+                },
+                "[MED]  Content-Security-Policy di-set": {
+                    "name": "[MED]  Content-Security-Policy di-set",
+                    "path": "::[MED]  Content-Security-Policy di-set",
+                    "id": "1e67c973e3b2f0629718ed3828cbf74d",
+                    "passes": 0,
+                    "fails": 1
+                },
+                "[LOW]  Server header tidak expose versi exact": {
+                    "name": "[LOW]  Server header tidak expose versi exact",
+                    "path": "::[LOW]  Server header tidak expose versi exact",
+                    "id": "419337456711468d5015c11b8f03d935",
+                    "passes": 0,
+                    "fails": 1
+                },
+                "[CRIT] Set-Cookie csrftoken HttpOnly atau ada Secure (jika HTTPS)": {
+                    "fails": 0,
+                    "name": "[CRIT] Set-Cookie csrftoken HttpOnly atau ada Secure (jika HTTPS)",
+                    "path": "::[CRIT] Set-Cookie csrftoken HttpOnly atau ada Secure (jika HTTPS)",
+                    "id": "6b774f6bd653927eb2157a18ba5a4e21",
+                    "passes": 1
+                },
+                "[CRIT] Set-Cookie sessionid HttpOnly": {
+                    "name": "[CRIT] Set-Cookie sessionid HttpOnly",
+                    "path": "::[CRIT] Set-Cookie sessionid HttpOnly",
+                    "id": "cd429c4a0ddb82183d630d5b7dae0a75",
+                    "passes": 1,
+                    "fails": 0
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "metrics": {
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 1,
+            "value": 0
+        },
+        "http_req_tls_handshaking": {
+            "avg": 152.964,
+            "min": 152.964,
+            "med": 152.964,
+            "max": 152.964,
+            "p(90)": 152.964,
+            "p(95)": 152.964
+        },
+        "data_received": {
+            "count": 28490,
+            "rate": 67900.39305485513
+        },
+        "http_req_connecting": {
+            "p(90)": 49.1428,
+            "p(95)": 49.1428,
+            "avg": 49.1428,
+            "min": 49.1428,
+            "med": 49.1428,
+            "max": 49.1428
+        },
+        "http_req_duration": {
+            "p(90)": 187.0097,
+            "p(95)": 187.0097,
+            "avg": 187.0097,
+            "min": 187.0097,
+            "med": 187.0097,
+            "max": 187.0097
+        },
+        "checks": {
+            "fails": 2,
+            "passes": 7,
+            "value": 0.7777777777777778
+        },
+        "http_req_blocked": {
+            "med": 223.9896,
+            "max": 223.9896,
+            "p(90)": 223.9896,
+            "p(95)": 223.9896,
+            "avg": 223.9896,
+            "min": 223.9896
+        },
+        "iterations": {
+            "count": 1,
+            "rate": 2.3833061795315946
+        },
+        "http_reqs": {
+            "count": 1,
+            "rate": 2.3833061795315946
+        },
+        "http_req_receiving": {
+            "med": 102.5837,
+            "max": 102.5837,
+            "p(90)": 102.5837,
+            "p(95)": 102.5837,
+            "avg": 102.5837,
+            "min": 102.5837
+        },
+        "http_req_sending": {
+            "max": 0.5331,
+            "p(90)": 0.5331,
+            "p(95)": 0.5331,
+            "avg": 0.5331,
+            "min": 0.5331,
+            "med": 0.5331
+        },
+        "http_req_waiting": {
+            "avg": 83.8929,
+            "min": 83.8929,
+            "med": 83.8929,
+            "max": 83.8929,
+            "p(90)": 83.8929,
+            "p(95)": 83.8929
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 187.0097,
+            "min": 187.0097,
+            "med": 187.0097,
+            "max": 187.0097,
+            "p(90)": 187.0097,
+            "p(95)": 187.0097
+        },
+        "data_sent": {
+            "count": 1830,
+            "rate": 4361.450308542818
+        },
+        "iteration_duration": {
+            "avg": 419.5852,
+            "min": 419.5852,
+            "med": 419.5852,
+            "max": 419.5852,
+            "p(90)": 419.5852,
+            "p(95)": 419.5852
+        }
+    }
+}
