@@ -1,4 +1,7 @@
-Django>=5.0
+# Django: pin ke 6.0.5 — versi yang berjalan di VPS (6.0.4) + patch keamanan
+# PYSEC-2026-50/54/55. Backward-compatible (sama lini 6.0), tidak mengubah
+# perilaku aplikasi.
+Django==6.0.5
 psycopg2-binary
 django-environ
 django-ckeditor-5
@@ -10,7 +13,13 @@ python-docx
 docx2pdf
 xhtml2pdf
 gunicorn
+# requests + dependensi transitifnya. Batas-bawah berikut menutup CVE yang
+# terdeteksi pip-audit (idna CVE-2026-45409, urllib3 PYSEC-2026-141/142)
+# tanpa mengikat versi atas, agar update minor aman tetap bisa masuk.
 requests
+urllib3>=2.7.0
+idna>=3.15
 qrcode[pil]
 pgvector
+# nh3: sanitasi HTML anti-XSS untuk konten CKEditor (core/sanitizer.py)
 nh3
