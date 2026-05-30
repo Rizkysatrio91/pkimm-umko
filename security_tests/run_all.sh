@@ -33,8 +33,12 @@ declare -a TESTS=(
     "06_endpoint_enumeration.js"
     "02_rate_limit_login.js"
     "04_rate_limit_forgot_password.js"
+    "09_open_redirect.js"
+    "11_xss_sanitization.js"
+    "12_sensitive_data_exposure.js"
     "03_rate_limit_chatbot.js|chatbot"
     "07_ip_spoofing.js|chatbot"
+    "10_rate_limit_otp.js"
     "08_load_baseline.js|load"
 )
 

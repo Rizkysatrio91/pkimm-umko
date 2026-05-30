@@ -37,8 +37,12 @@ $tests = @(
     @{ File = "06_endpoint_enumeration.js";        Wajib = $false },
     @{ File = "02_rate_limit_login.js";            Wajib = $false },
     @{ File = "04_rate_limit_forgot_password.js";  Wajib = $false },
+    @{ File = "09_open_redirect.js";               Wajib = $false },
+    @{ File = "11_xss_sanitization.js";            Wajib = $false },
+    @{ File = "12_sensitive_data_exposure.js";     Wajib = $false },
     @{ File = "03_rate_limit_chatbot.js";          Wajib = $false; Skip = $SkipChatbot },
     @{ File = "07_ip_spoofing.js";                 Wajib = $false; Skip = $SkipChatbot },
+    @{ File = "10_rate_limit_otp.js";              Wajib = $false },
     @{ File = "08_load_baseline.js";               Wajib = $false; Skip = $SkipLoad }
 )
 
