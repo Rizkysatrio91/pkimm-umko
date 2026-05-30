@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 
 from apps.accounts.forms import (
@@ -59,8 +60,15 @@ class LoginView(View):
             login(request, user)
             # Reset counter setelah berhasil login
             RateLimiter.reset_login_limit(request)
+            # Validasi 'next' untuk cegah open redirect: hanya izinkan URL
+            # internal (host sama / path relatif). URL eksternal diabaikan
+            # supaya tidak bisa dipakai phishing (?next=https://situs-jahat).
             next_url = request.GET.get('next')
-            if next_url:
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
                 return redirect(next_url)
             return redirect('accounts:login_redirect')
 
@@ -243,12 +251,24 @@ class VerifyOTPView(View):
     def post(self, request):
         form = VerifyOTPForm(request.POST)
         if form.is_valid():
+            # Batasi percobaan tebak OTP (anti brute-force). Dicek hanya saat
+            # form valid (6 digit) supaya salah ketik biasa tidak boros kuota.
+            is_limited, _, retry = RateLimiter.check_otp_verify_limit(request)
+            if is_limited:
+                menit = max(1, retry // 60)
+                messages.error(
+                    request,
+                    f'Terlalu banyak percobaan kode OTP. Coba lagi dalam {menit} menit.',
+                )
+                return render(request, self.template_name, {'form': VerifyOTPForm()})
+
             email = request.session['reset_email']
             otp = form.cleaned_data['otp']
             try:
                 user = User.objects.get(email=email)
                 status = user.check_otp(otp)
                 if status == 'valid':
+                    RateLimiter.reset_otp_verify_limit(request)
                     request.session['otp_verified'] = True
                     return redirect('accounts:reset_password')
                 elif status == 'expired':

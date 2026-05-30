@@ -166,6 +166,24 @@ class RateLimiter:
         ip = cls.get_client_ip(request)
         cache.delete(f"login_{ip}")
 
+    # === OTP VERIFY RATE LIMIT ===
+
+    @classmethod
+    def check_otp_verify_limit(cls, request) -> tuple:
+        """Batasi percobaan tebak OTP: maks 5 per 15 menit per IP.
+
+        Tanpa ini, OTP 6 digit (1 juta kombinasi, TTL 10 menit) bisa
+        di-brute-force karena endpoint verifikasi tidak punya throttle.
+        """
+        ip = cls.get_client_ip(request)
+        return cls.is_rate_limited(f"otp_verify_{ip}", max_requests=5, period_seconds=900)
+
+    @classmethod
+    def reset_otp_verify_limit(cls, request):
+        """Reset counter percobaan OTP setelah verifikasi berhasil."""
+        ip = cls.get_client_ip(request)
+        cache.delete(f"otp_verify_{ip}")
+
     # === FORGOT PASSWORD RATE LIMIT ===
 
     @classmethod

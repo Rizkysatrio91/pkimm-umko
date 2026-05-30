@@ -44,7 +44,17 @@ class Berita(models.Model):
         return self.judul
 
     def save(self, *args, **kwargs) -> None:
-        """Auto-generate slug dari judul."""
+        """Auto-generate slug dari judul + sanitasi konten HTML (anti-XSS).
+
+        Sanitasi dilakukan di level model agar SEMUA jalur simpan (form
+        penulis, koreksi AI, admin, shell) ikut terlindungi. Fail-safe:
+        bila nh3 belum terpasang, konten dikembalikan apa adanya.
+        """
+        from core.sanitizer import sanitize_html
+        if self.konten_draft:
+            self.konten_draft = sanitize_html(self.konten_draft)
+        if self.konten_final:
+            self.konten_final = sanitize_html(self.konten_final)
         if not self.slug:
             base_slug = slugify(self.judul)
             slug = base_slug
@@ -90,6 +100,13 @@ class KataSambutan(models.Model):
     def __str__(self) -> str:
         return f"Sambutan — {self.nama}"
 
+    def save(self, *args, **kwargs) -> None:
+        """Sanitasi HTML kata sambutan (CKEditor) sebelum simpan — anti-XSS."""
+        from core.sanitizer import sanitize_html
+        if self.kata_sambutan:
+            self.kata_sambutan = sanitize_html(self.kata_sambutan)
+        super().save(*args, **kwargs)
+
 
 class VisiMisi(models.Model):
     """Visi dan misi organisasi."""
@@ -108,6 +125,15 @@ class VisiMisi(models.Model):
 
     def __str__(self) -> str:
         return f"Visi & Misi ({'Aktif' if self.is_active else 'Nonaktif'})"
+
+    def save(self, *args, **kwargs) -> None:
+        """Sanitasi HTML visi & misi (CKEditor) sebelum simpan — anti-XSS."""
+        from core.sanitizer import sanitize_html
+        if self.visi:
+            self.visi = sanitize_html(self.visi)
+        if self.misi:
+            self.misi = sanitize_html(self.misi)
+        super().save(*args, **kwargs)
 
     def get_misi_list(self) -> list:
         """Return misi sebagai list (split per baris)."""

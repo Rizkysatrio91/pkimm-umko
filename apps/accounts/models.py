@@ -1,5 +1,5 @@
 """Model User dengan akses berbasis role dan dukungan OTP."""
-import random
+import secrets
 import string
 from datetime import timedelta
 
@@ -78,7 +78,8 @@ class User(AbstractUser):
 
     def generate_otp(self) -> str:
         """Buat OTP 6 digit dan set waktu kedaluarsa 10 menit."""
-        self.otp_token = ''.join(random.choices(string.digits, k=6))
+        # secrets (CSPRNG) bukan random (Mersenne Twister yang bisa diprediksi)
+        self.otp_token = ''.join(secrets.choice(string.digits) for _ in range(6))
         self.otp_expired_at = timezone.now() + timedelta(minutes=10)
         self.save(update_fields=['otp_token', 'otp_expired_at'])
         return self.otp_token
@@ -92,7 +93,8 @@ class User(AbstractUser):
         """
         if not self.otp_token or not self.otp_expired_at:
             return 'invalid'
-        if self.otp_token != otp.strip():
+        # compare_digest: perbandingan constant-time, cegah timing attack.
+        if not secrets.compare_digest(self.otp_token, otp.strip()):
             return 'invalid'
         if timezone.now() >= self.otp_expired_at:
             return 'expired'

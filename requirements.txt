@@ -13,3 +13,4 @@ gunicorn
 requests
 qrcode[pil]
 pgvector
+nh3
