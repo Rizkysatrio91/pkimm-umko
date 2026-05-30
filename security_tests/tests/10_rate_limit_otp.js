@@ -12,18 +12,23 @@
 //   - apps/accounts/views.py — VerifyOTPView memanggil limiter sebelum cek OTP
 //   - apps/accounts/models.py — OTP pakai secrets (CSPRNG) + compare_digest
 //
-// Skenario:
-//   Lewati langkah forgot-password (set session) lalu kirim 20 percobaan OTP
-//   acak yang salah. Setelah ~5 percobaan, server HARUS mulai menolak dengan
-//   pesan "Terlalu banyak percobaan kode OTP".
+// CARA KERJA (penting — alur 3 langkah + CSRF):
+//   Endpoint OTP dilindungi CSRF. Agar request sampai ke logika OTP (bukan
+//   ditolak CSRF lebih dulu), test:
+//     1. GET forgot-password → dapatkan cookie csrftoken.
+//     2. POST forgot-password (pakai token cookie) → set session reset_email.
+//        Django menerima nilai cookie csrftoken langsung sebagai
+//        csrfmiddlewaretoken, jadi tidak perlu parse HTML yang rapuh.
+//     3. POST verify-otp 20x dengan kode acak salah. Setelah 5 percobaan,
+//        server HARUS menolak: render "Terlalu banyak percobaan kode OTP".
 //
 // CATATAN PENTING:
-//   - Test ini memakai email yang TIDAK terdaftar, jadi OTP tidak akan pernah
-//     cocok — aman, tidak mengubah password siapa pun.
-//   - Alur butuh session 'reset_email'. Kita set lewat POST forgot-password
-//     dulu (rate limit forgot-password = 3/15mnt, jadi cukup 1x panggil).
-//   - Karena per-IP, jalankan BUKAN dari IP yang dipakai user reset password
-//     real setelahnya (IP akan ter-limit sementara).
+//   - Memakai email yang TIDAK terdaftar → OTP tak pernah cocok, tidak
+//     mengubah akun siapa pun.
+//   - Per-IP: jalankan BUKAN dari IP yang dipakai user reset password real
+//     setelahnya (IP akan ter-limit ~15 menit — itu memang buktinya bekerja).
+//   - Status 403 = ditolak CSRF (alur gagal disiapkan), BUKAN bukti limiter.
+//     Test membedakan ini lewat counter terpisah agar tidak menyesatkan.
 //
 // Severity bila gagal: CRITICAL (akun bisa dibajak via brute-force OTP).
 //
@@ -32,13 +37,14 @@
 // =============================================================================
 
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 import { BASE_URL, DEFAULT_HEADERS, REQUEST_TIMEOUT } from '../config.js';
-import { parseCsrfToken, randomString } from '../lib/helpers.js';
+import { extractCookie, parseCsrfToken, randomString } from '../lib/helpers.js';
 
-const otpBlockedCounter = new Counter('otp_attempt_blocked');
-const otpAcceptedCounter = new Counter('otp_wrong_accepted');
+const otpBlockedCounter = new Counter('otp_attempt_blocked');   // ditolak rate limit
+const otpAcceptedCounter = new Counter('otp_wrong_accepted');   // OTP salah diterima (BAHAYA)
+const csrfBlockedCounter = new Counter('otp_csrf_blocked');     // 403 (alur gagal disiapkan)
 
 export const options = {
     vus: 1,
@@ -52,58 +58,75 @@ export const options = {
 };
 
 const TOTAL_ATTEMPTS = 20;
+const FORGOT_URL = `${BASE_URL}/accounts/forgot-password/`;
+const VERIFY_URL = `${BASE_URL}/accounts/verify-otp/`;
 
 export default function () {
     const jar = http.cookieJar();
     // Email acak yang tidak terdaftar — OTP tak akan pernah cocok.
     const fakeEmail = `k6_${randomString(8)}@example.invalid`;
 
-    // 1. Set session 'reset_email' via forgot-password (1x panggil saja).
-    const fpGet = http.get(`${BASE_URL}/accounts/forgot-password/`, {
+    // --- Langkah 1: GET forgot-password untuk dapatkan cookie csrftoken -------
+    const fpGet = http.get(FORGOT_URL, {
         headers: DEFAULT_HEADERS, jar, timeout: REQUEST_TIMEOUT,
     });
-    const fpCsrf = parseCsrfToken(fpGet.body);
-    http.post(`${BASE_URL}/accounts/forgot-password/`, {
-        csrfmiddlewaretoken: fpCsrf || '',
+    // Django menerima nilai cookie csrftoken langsung sebagai form token.
+    // Lebih tangguh daripada parse HTML (yang gagal bila halaman redirect).
+    let csrfToken = extractCookie(fpGet, 'csrftoken') || parseCsrfToken(fpGet.body);
+
+    if (!csrfToken) {
+        console.log('  ✗ Gagal memperoleh csrftoken — tidak bisa menyiapkan alur. Cek server.');
+        return;
+    }
+
+    // --- Langkah 2: POST forgot-password untuk set session reset_email -------
+    const fpPost = http.post(FORGOT_URL, {
+        csrfmiddlewaretoken: csrfToken,
         email: fakeEmail,
     }, {
-        headers: { ...DEFAULT_HEADERS, Referer: `${BASE_URL}/accounts/forgot-password/` },
-        jar, redirects: 1, timeout: REQUEST_TIMEOUT,
+        headers: { ...DEFAULT_HEADERS, Referer: FORGOT_URL },
+        jar, redirects: 0, timeout: REQUEST_TIMEOUT,
     });
+    // Refresh token bila cookie diputar.
+    csrfToken = extractCookie(fpPost, 'csrftoken') || csrfToken;
 
-    // 2. Banjir percobaan OTP salah.
+    if (fpPost.status === 403) {
+        console.log('  ✗ POST forgot-password ditolak CSRF (403) — alur tidak bisa disiapkan.');
+        return;
+    }
+
+    // --- Langkah 3: banjir percobaan OTP salah ------------------------------
     console.log('\n=== UJI BRUTE-FORCE OTP (20 percobaan kode salah) ===');
     for (let i = 1; i <= TOTAL_ATTEMPTS; i++) {
-        const voGet = http.get(`${BASE_URL}/accounts/verify-otp/`, {
-            headers: DEFAULT_HEADERS, jar, redirects: 0, timeout: REQUEST_TIMEOUT,
-        });
-        // Kalau session hilang, server redirect balik ke forgot-password.
-        const voCsrf = parseCsrfToken(voGet.body);
-
-        // OTP acak 6 digit yang (hampir pasti) salah.
         const guess = String(Math.floor(100000 + Math.random() * 900000));
-        const res = http.post(`${BASE_URL}/accounts/verify-otp/`, {
-            csrfmiddlewaretoken: voCsrf || '',
+        const res = http.post(VERIFY_URL, {
+            csrfmiddlewaretoken: csrfToken,
             otp: guess,
         }, {
-            headers: { ...DEFAULT_HEADERS, Referer: `${BASE_URL}/accounts/verify-otp/` },
+            headers: { ...DEFAULT_HEADERS, Referer: VERIFY_URL },
             jar, redirects: 0, timeout: REQUEST_TIMEOUT,
         });
+        csrfToken = extractCookie(res, 'csrftoken') || csrfToken;
 
         const body = res.body || '';
         const blocked =
             res.status === 429 ||
             body.includes('Terlalu banyak percobaan kode OTP') ||
             body.includes('Terlalu banyak');
-        // Redirect ke reset-password = OTP diterima (BAHAYA — tidak boleh terjadi).
         const accepted =
             res.status === 302 &&
             (res.headers['Location'] || '').includes('reset-password');
+        const csrfBlocked = res.status === 403;
 
         if (blocked) otpBlockedCounter.add(1);
         if (accepted) otpAcceptedCounter.add(1);
+        if (csrfBlocked) csrfBlockedCounter.add(1);
 
-        const tag = accepted ? '✗ DITERIMA!' : (blocked ? '■ diblokir' : '· ditolak');
+        let tag;
+        if (accepted) tag = '✗ DITERIMA! (bahaya)';
+        else if (blocked) tag = '■ diblokir rate-limit';
+        else if (csrfBlocked) tag = '✗ ditolak CSRF (alur gagal)';
+        else tag = '· ditolak (OTP salah)';
         console.log(`  Percobaan ${String(i).padStart(2)} [${res.status}] ${tag}`);
 
         sleep(0.15);
@@ -114,6 +137,6 @@ export function teardown() {
     console.log('\n--- HASIL UJI RATE LIMIT OTP ---');
     console.log('  otp_attempt_blocked >= 10 → rate limit OTP BERFUNGSI ✓');
     console.log('  otp_wrong_accepted  == 0  → tidak ada OTP salah yang lolos ✓');
-    console.log('  Jika blocked == 0         → CRITICAL: OTP bisa di-brute-force ✗');
+    console.log('  otp_csrf_blocked > 0      → alur CSRF gagal disiapkan (perbaiki test, bukan vuln)');
     console.log('---------------------------------\n');
 }
