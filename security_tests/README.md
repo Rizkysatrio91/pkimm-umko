@@ -38,9 +38,35 @@ DatabaseCache + RateLimiter + BudgetLimiter + SSO UMKO + OpenAI RAG).
 | `06_endpoint_enumeration.js`        | Admin URL ter-protect, no .env / .git leak | CRIT / HIGH    |
 | `07_ip_spoofing.js`                 | XFF spoofing tidak bypass rate limit (commit 7a65151) | CRITICAL |
 | `08_load_baseline.js`               | Performa baseline 10 VU / 1.5 menit    | HIGH / MEDIUM       |
+| `09_open_redirect.js`               | `?next=` login tak bisa ke domain luar (phishing) | HIGH      |
+| `10_rate_limit_otp.js`              | Anti brute-force kode OTP reset password (5×/15mnt) | CRITICAL |
+| `11_xss_sanitization.js`            | Konten publik bersih dari `<script>`/handler (nh3) | CRITICAL |
+| `12_sensitive_data_exposure.js`     | Data SSO mahasiswa & dokumen tertutup (auth/IDOR/listing) | CRITICAL |
 
 Total request maksimum yang dikirim ke server **kurang dari 1500
 selama 5 menit** — beban ringan, aman untuk VPS.
+
+### Test 09–12 (ditambahkan saat hardening Mei 2026)
+
+Empat test ini memverifikasi perbaikan keamanan terbaru. Semua **pasif/read-only**
+kecuali 10 (mengirim POST percobaan OTP yang sengaja gagal):
+
+- **09 Open Redirect** — membuktikan `LoginView` memvalidasi parameter `next`
+  (`url_has_allowed_host_and_scheme`) sehingga tidak bisa diarahkan ke domain
+  attacker untuk phishing.
+- **10 Rate Limit OTP** — membuktikan `RateLimiter.check_otp_verify_limit`
+  (5×/15 mnt per IP) memblokir brute-force kode OTP 6 digit. Memakai email
+  tak terdaftar → tidak mengubah akun siapa pun. Jalankan dari IP non-admin.
+- **11 XSS Sanitization** — mengaudit halaman publik (beranda, berita,
+  visi-misi, sejarah) memastikan tidak ada `<script>`, `onerror=`,
+  `javascript:`, `<iframe>` yang ter-render. Membuktikan `core/sanitizer.py`
+  (nh3) bekerja end-to-end.
+- **12 Sensitive Data Exposure** — membuktikan data pribadi mahasiswa dari SSO
+  UMKO (NPM, tanggal lahir, alamat) & dokumen pendaftaran tidak bisa diakses
+  anonim, tidak rentan IDOR, dan direktori media tidak bisa di-listing.
+
+Pemetaan OWASP Top 10: A01 Broken Access Control → 06, 09, 12 · A03 Injection
+(XSS) → 11 · A04 Insecure Design → 10 · A07 Auth Failures → 02, 04, 10.
 
 ---
 
@@ -214,7 +240,11 @@ security_tests/
 │   ├── 05_csrf_protection.js
 │   ├── 06_endpoint_enumeration.js
 │   ├── 07_ip_spoofing.js
-│   └── 08_load_baseline.js
+│   ├── 08_load_baseline.js
+│   ├── 09_open_redirect.js              # hardening Mei 2026
+│   ├── 10_rate_limit_otp.js            # hardening Mei 2026
+│   ├── 11_xss_sanitization.js          # hardening Mei 2026
+│   └── 12_sensitive_data_exposure.js   # hardening Mei 2026
 ├── run_all.ps1                       # Runner Windows PowerShell
 ├── run_all.sh                        # Runner Linux/macOS bash
 └── reports/                          # Output JSON + laporan markdown
