@@ -40,6 +40,7 @@ $tests = @(
     @{ File = "09_open_redirect.js";               Wajib = $false },
     @{ File = "11_xss_sanitization.js";            Wajib = $false },
     @{ File = "12_sensitive_data_exposure.js";     Wajib = $false },
+    @{ File = "13_bot_detection.js";               Wajib = $false },
     @{ File = "03_rate_limit_chatbot.js";          Wajib = $false; Skip = $SkipChatbot },
     @{ File = "07_ip_spoofing.js";                 Wajib = $false; Skip = $SkipChatbot },
     @{ File = "10_rate_limit_otp.js";              Wajib = $false },

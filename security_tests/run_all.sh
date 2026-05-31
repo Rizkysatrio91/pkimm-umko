@@ -36,6 +36,7 @@ declare -a TESTS=(
     "09_open_redirect.js"
     "11_xss_sanitization.js"
     "12_sensitive_data_exposure.js"
+    "13_bot_detection.js"
     "03_rate_limit_chatbot.js|chatbot"
     "07_ip_spoofing.js|chatbot"
     "10_rate_limit_otp.js"

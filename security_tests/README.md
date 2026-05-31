@@ -42,6 +42,7 @@ DatabaseCache + RateLimiter + BudgetLimiter + SSO UMKO + OpenAI RAG).
 | `10_rate_limit_otp.js`              | Anti brute-force kode OTP reset password (5×/15mnt) | CRITICAL |
 | `11_xss_sanitization.js`            | Konten publik bersih dari `<script>`/handler (nh3) | CRITICAL |
 | `12_sensitive_data_exposure.js`     | Data SSO mahasiswa & dokumen tertutup (auth/IDOR/listing) | CRITICAL |
+| `13_bot_detection.js`               | Bot/pengguna fiktif ditolak (same-origin + honeypot + chat_token), OpenAI tak tersentuh | CRITICAL |
 
 Total request maksimum yang dikirim ke server **kurang dari 1500
 selama 5 menit** — beban ringan, aman untuk VPS.
@@ -244,7 +245,8 @@ security_tests/
 │   ├── 09_open_redirect.js              # hardening Mei 2026
 │   ├── 10_rate_limit_otp.js            # hardening Mei 2026
 │   ├── 11_xss_sanitization.js          # hardening Mei 2026
-│   └── 12_sensitive_data_exposure.js   # hardening Mei 2026
+│   ├── 12_sensitive_data_exposure.js   # hardening Mei 2026
+│   └── 13_bot_detection.js             # hardening Mei 2026
 ├── run_all.ps1                       # Runner Windows PowerShell
 ├── run_all.sh                        # Runner Linux/macOS bash
 └── reports/                          # Output JSON + laporan markdown
