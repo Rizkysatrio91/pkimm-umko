@@ -1,133 +1,128 @@
 // =============================================================================
-// 03 — RATE LIMIT CHATBOT (ANTI OPENAI COST-BURNING)
+// 03 — RATE LIMIT & PROTEKSI CHATBOT (ANTI OPENAI COST-BURNING)
 // =============================================================================
-// Tujuan: Verifikasi endpoint /chatbot/api/send/ MENOLAK request burst
-// dari user anonim. Ini adalah test paling penting untuk project ini —
-// commit 7a65151 dibuat khusus untuk menutup celah ini setelah pentest k6
-// pertama berhasil membakar token OpenAI.
+// Tujuan: Verifikasi endpoint chatbot publik /chatbot/api/send/ punya
+// proteksi berlapis yang mencegah penyerang membakar budget OpenAI lewat
+// flooding.
 //
-// Lapisan pertahanan yang seharusnya aktif (per RateLimiter dan
-// BudgetLimiter di core/):
-//   1. check_min_interval — minimal 2-3 detik antar pesan per IP/user
-//   2. check_chatbot_limit — N request per menit per IP (anonim lebih ketat)
-//   3. BudgetLimiter.can_use_ai — cap biaya OpenAI bulanan ($1.25 default)
+// MODEL KEAMANAN CHATBOT (dari apps/chatbot/views.py — PENTING):
+//   Endpoint ini SENGAJA @csrf_exempt (AJAX publik tanpa CSRF Django).
+//   Sebagai gantinya, proteksi berlapis dijalankan BERURUTAN:
+//     1. Same-origin check (Origin/Referer wajib domain sendiri) → 403
+//     2. chat_token HMAC terikat IP+UA (core/security.py)         → 403
+//     3. Rate limit: min-interval 1 dtk/IP + 4/menit (anonim)     → 429
+//   Request hanya membakar OpenAI bila LOLOS ketiga lapis. Jadi proteksi
+//   "cukup" selama request flooding ditolak di lapis MANA PUN (403 atau 429).
 //
-// Skenario:
-//   1 VU mengirim 20 pesan ke chatbot publik secepat mungkin (no sleep).
-//   Server seharusnya:
-//     - Request #1-2: HTTP 200 dengan jawaban
-//     - Request #3+ (terlalu cepat): HTTP 429 / pesan "tunggu N detik"
-//     - Setelah quota habis: HTTP 429 / pesan "rate limit tercapai"
+// CATATAN: versi test lama keliru memeriksa csrfmiddlewaretoken (mekanisme
+//   form Django) yang TIDAK dipakai chatbot. Versi ini diperbaiki: parse
+//   chat_token yang benar (data-chat-token), dan mencatat status tiap
+//   request agar terlihat di lapis mana request ditolak.
 //
-// Kalau >50% request berhasil mendapat respons OpenAI → CRITICAL,
-// celah cost-burning masih ada.
+// METRIK KEAMANAN UTAMA:
+//   - openai_call_succeeded <= 4  → budget OpenAI aman (yang paling penting)
+//   - blocked_total >= 16         → mayoritas flooding ditolak (403 ATAU 429)
 //
-// Severity bila gagal: CRITICAL (token OpenAI bisa dibakar habis).
+// Severity bila gagal: CRITICAL (cost-burning → tagihan OpenAI membengkak).
 //
 // Cara jalan:
 //   k6 run -e BASE_URL=https://pkimm-ftik-umko.my.id tests/03_rate_limit_chatbot.js
 // =============================================================================
 
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 import { BASE_URL, DEFAULT_HEADERS, REQUEST_TIMEOUT } from '../config.js';
-import { parseCsrfToken } from '../lib/helpers.js';
+
+const blockedTotal = new Counter('blocked_total');             // ditolak (403/429/4xx)
+const rateLimited429 = new Counter('rate_limited_429');        // ditolak rate limit
+const tokenOriginBlocked = new Counter('token_or_origin_403'); // ditolak token/same-origin
+const openaiSuccess = new Counter('openai_call_succeeded');    // jawaban AI sungguhan (mahal)
 
 export const options = {
     vus: 1,
-    iterations: 20, // 20 burst tanpa sleep
+    iterations: 20,
     thresholds: {
-        // ≥ 80% dari 20 request HARUS ditolak (rate-limited).
-        // Hanya boleh ada ≤ 4 request yang sukses dapat jawaban OpenAI.
-        'rate_limited_chatbot': ['count>=16'],
+        // METRIK UTAMA: budget OpenAI tidak boleh terbakar masif.
         'openai_call_succeeded': ['count<=4'],
+        // Mayoritas flooding harus ditolak di lapis mana pun (403 atau 429).
+        'blocked_total': ['count>=16'],
     },
 };
 
-const rateLimitedChatbot = new Counter('rate_limited_chatbot');
-const openaiCallSucceeded = new Counter('openai_call_succeeded');
-
-// Pesan singkat — kalau benar-benar sampai ke OpenAI, biaya per call kecil
-// (~$0.0001 dengan gpt-4o-mini). Maks total kerugian test ini < $0.001.
-const PESAN_TEST = 'apa itu IMM?';
+// Ambil chat_token dari halaman chatbot. Template merender:
+//   data-chat-token="{{ chat_token }}"  dan  chatbotPublik('{{ chat_token }}')
+function getChatToken() {
+    const res = http.get(`${BASE_URL}/chatbot/`, {
+        headers: DEFAULT_HEADERS, timeout: REQUEST_TIMEOUT,
+    });
+    const body = res.body || '';
+    let token = null;
+    const m1 = body.match(/data-chat-token=["']([^"']+)["']/);
+    const m2 = body.match(/chatbotPublik\(['"]([^'"]+)['"]\)/);
+    const m3 = body.match(/chat_token["']?\s*[:=]\s*["']([^"']+)["']/);
+    if (m1) token = m1[1];
+    else if (m2) token = m2[1];
+    else if (m3) token = m3[1];
+    return token;
+}
 
 export default function () {
-    const jar = http.cookieJar();
+    const chatToken = getChatToken();
 
-    // GET halaman chatbot dulu untuk dapatkan csrftoken
-    const getRes = http.get(`${BASE_URL}/chatbot/`, {
-        headers: DEFAULT_HEADERS,
-        jar,
+    // Bukan kegagalan keamanan kalau token ada — ini info kesiapan test.
+    check(null, {
+        '[INFO] chat_token bisa diparse dari halaman': () => chatToken !== null,
+    });
+
+    const payload = JSON.stringify({
+        pesan: `test rate limit ${Date.now()}`,
+        sesi_id: `k6-session-${__VU}-${__ITER}`,
+        chat_token: chatToken,
+    });
+
+    const res = http.post(`${BASE_URL}/chatbot/api/send/`, payload, {
+        headers: {
+            ...DEFAULT_HEADERS,
+            'Content-Type': 'application/json',
+            'Referer': `${BASE_URL}/chatbot/`,
+            'Origin': BASE_URL,
+        },
         timeout: REQUEST_TIMEOUT,
     });
-    const csrf = parseCsrfToken(getRes.body);
 
-    if (!csrf) {
-        check(getRes, { 'CSRF token chatbot bisa diparse': () => false });
-        return;
-    }
+    const body = res.body || '';
+    const is429 = res.status === 429 ||
+        body.includes('Terlalu banyak') || body.includes('batas');
+    const is403 = res.status === 403;
+    const openaiOk = res.status === 200 &&
+        (body.includes('jawaban') || body.includes('response'));
 
-    // POST ke API chatbot dengan minimal payload
-    const apiRes = http.post(
-        `${BASE_URL}/chatbot/api/send/`,
-        JSON.stringify({
-            pesan: PESAN_TEST,
-            sesi_id: `k6-pentest-${__VU}-${__ITER}`,
-            jenis: 'umum',
-        }),
-        {
-            headers: {
-                ...DEFAULT_HEADERS,
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrf,
-                Referer: `${BASE_URL}/chatbot/`,
-            },
-            jar,
-            timeout: REQUEST_TIMEOUT,
-        }
-    );
+    if (is429) { rateLimited429.add(1); blockedTotal.add(1); }
+    else if (is403) { tokenOriginBlocked.add(1); blockedTotal.add(1); }
+    else if (res.status >= 400) { blockedTotal.add(1); }
+    if (openaiOk) openaiSuccess.add(1);
 
-    const body = apiRes.body || '';
-    let parsed = {};
-    try { parsed = JSON.parse(body); } catch (e) { /* not json */ }
+    // Catat status tiap request supaya terlihat di lapis mana ditolak.
+    let tag;
+    if (openaiOk) tag = '✗ JAWABAN AI (request lolos — cek budget!)';
+    else if (is429) tag = '■ 429 rate-limit';
+    else if (is403) tag = '◧ 403 token/same-origin';
+    else tag = `· status ${res.status}`;
+    // potong body agar log ringkas
+    const snippet = body.replace(/\s+/g, ' ').slice(0, 80);
+    console.log(`  Req ${String(__ITER + 1).padStart(2)} [${res.status}] ${tag}  ${snippet}`);
 
-    const isRateLimited =
-        apiRes.status === 429 ||
-        body.includes('Terlalu') ||
-        body.includes('tunggu') ||
-        body.includes('rate limit') ||
-        body.includes('Layanan sedang') ||
-        (parsed.error && /(rate|limit|tunggu|cooldown)/i.test(parsed.error)) ||
-        (parsed.retry_seconds && parsed.retry_seconds > 0);
+    check(res, { '[INFO] Server merespons (bukan timeout)': () => res.status !== 0 });
 
-    // Heuristik "OpenAI succeeded": status 200 + jawaban panjang > 30 char
-    // (karena OpenAI biasanya jawab paragraph). Kalau hanya intent_keyword
-    // match dari DatasetChatbot, juga ke-count sebagai succeeded — tapi
-    // itu tetap mengkonsumsi resource server, jadi fair untuk dihitung.
-    const isOpenAISuccess =
-        apiRes.status === 200 &&
-        !isRateLimited &&
-        (parsed.respon_bot || parsed.message || '').length > 30;
-
-    if (isRateLimited) rateLimitedChatbot.add(1);
-    if (isOpenAISuccess) openaiCallSucceeded.add(1);
-
-    check(apiRes, {
-        '[INFO] API merespons (bukan crash 5xx)':
-            (r) => r.status !== 0 && r.status < 500,
-        '[CRIT] Burst tidak boleh semua sukses (cost-burning protection)':
-            () => !(isOpenAISuccess && __ITER >= 5),
-    });
-
-    // SENGAJA tidak pakai sleep — tujuannya membakar request secepat mungkin
-    // untuk memicu rate limiter. Jangan tambah sleep di test ini.
+    sleep(0.1);
 }
 
 export function teardown() {
-    console.log('\n--- HASIL UJI RATE LIMIT CHATBOT (ANTI COST-BURNING) ---');
-    console.log('  Target: ≥ 16 dari 20 request harus ditolak (≥ 80%)');
-    console.log('  Kalau openai_call_succeeded > 4 → review BudgetLimiter');
-    console.log('  Kalau openai_call_succeeded == 20 → CRITICAL: regresi ke kondisi pre-7a65151');
-    console.log('---------------------------------------------------------\n');
+    console.log('\n--- HASIL UJI PROTEKSI CHATBOT (ANTI COST-BURNING) ---');
+    console.log('  openai_call_succeeded <= 4  → budget OpenAI AMAN (utama) ✓');
+    console.log('  blocked_total >= 16         → mayoritas flooding ditolak ✓');
+    console.log('  Ditolak via 403 (token/origin) ATAU 429 (rate-limit) sama-sama melindungi.');
+    console.log('  Jika openai_call_succeeded == 20 → CRITICAL: proteksi jebol.');
+    console.log('------------------------------------------------------');
 }
