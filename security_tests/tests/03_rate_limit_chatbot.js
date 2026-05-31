@@ -92,22 +92,28 @@ export default function () {
     });
 
     const body = res.body || '';
+    // Ditolak rate-limit: status 429, ATAU 200 dengan pesan batas/terlalu cepat
+    // (server kadang balas 200 + rate_limited:true, lihat views.py LANGKAH 1).
     const is429 = res.status === 429 ||
-        body.includes('Terlalu banyak') || body.includes('batas');
+        body.includes('Terlalu') || body.includes('batas penggunaan') ||
+        body.includes('"rate_limited": true') || body.includes('"rate_limited":true');
     const is403 = res.status === 403;
-    const openaiOk = res.status === 200 &&
-        (body.includes('jawaban') || body.includes('response'));
+    // "Mencapai OpenAI" = status 200, success:true, dan BUKAN respon rate-limit.
+    // Termasuk template "belum memiliki informasi" — itu TETAP panggilan OpenAI
+    // yang mengonsumsi token, jadi jujur dihitung sebagai succeeded.
+    const reachedOpenAI = res.status === 200 &&
+        body.includes('"success": true') && !is429;
 
     if (is429) { rateLimited429.add(1); blockedTotal.add(1); }
     else if (is403) { tokenOriginBlocked.add(1); blockedTotal.add(1); }
     else if (res.status >= 400) { blockedTotal.add(1); }
-    if (openaiOk) openaiSuccess.add(1);
+    if (reachedOpenAI) openaiSuccess.add(1);
 
     // Catat status tiap request supaya terlihat di lapis mana ditolak.
     let tag;
-    if (openaiOk) tag = '✗ JAWABAN AI (request lolos — cek budget!)';
-    else if (is429) tag = '■ 429 rate-limit';
-    else if (is403) tag = '◧ 403 token/same-origin';
+    if (reachedOpenAI) tag = '→ mencapai OpenAI (pakai token — sesuai limit 4/mnt)';
+    else if (is429) tag = '■ 429 rate-limit (diblokir)';
+    else if (is403) tag = '◧ 403 token/same-origin (diblokir)';
     else tag = `· status ${res.status}`;
     // potong body agar log ringkas
     const snippet = body.replace(/\s+/g, ' ').slice(0, 80);
