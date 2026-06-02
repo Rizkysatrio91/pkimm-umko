@@ -98,6 +98,28 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# Keamanan sesi (session)
+# -----------------------------------------------------------------------------
+# Tanpa pengaturan ini Django memakai default 2 minggu (1.209.600 detik) dan
+# cookie tetap hidup walau browser ditutup → user yang lupa logout bisa langsung
+# masuk dashboard lagi tanpa login. Dua lapis perlindungan:
+#
+# 1) SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+#    Cookie login jadi "session cookie" (tanpa Max-Age) → dihapus browser saat
+#    jendela/aplikasi browser benar-benar ditutup.
+#
+# 2) SESSION_COOKIE_AGE + SESSION_SAVE_EVERY_REQUEST = True
+#    Lapis di sisi server. Meski browser kadang "merestore" session cookie saat
+#    dibuka ulang, record session di server tetap kedaluwarsa setelah 30 menit
+#    TANPA aktivitas. SESSION_SAVE_EVERY_REQUEST memperbarui (reset) hitungan
+#    setiap kali ada request → ini timeout idle bergulir, bukan absolut: selama
+#    user aktif sesi diperpanjang, begitu diam 30 menit harus login ulang.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 30 * 60  # 30 menit (detik)
+SESSION_SAVE_EVERY_REQUEST = True
+# Cegah akses cookie session dari JavaScript (mitigasi pencurian via XSS).
+SESSION_COOKIE_HTTPONLY = True
+
 # Batas ukuran upload — melindungi dari user upload file besar
 # (mis. foto 50 MB atau attachment polyglot yang sangat besar).
 # DATA_UPLOAD_MAX_MEMORY_SIZE: batas total body POST (form multipart + field text)
