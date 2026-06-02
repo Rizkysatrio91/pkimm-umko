@@ -19,6 +19,15 @@ class NotifikasiListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return Notifikasi.objects.filter(id_user=self.request.user).order_by('-created_at')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Flag untuk menampilkan tombol "Hapus yang Sudah Dibaca" hanya jika
+        # memang ada notifikasi terbaca yang bisa dihapus.
+        context['has_read'] = Notifikasi.objects.filter(
+            id_user=self.request.user, is_read=True
+        ).exists()
+        return context
+
 
 class NotifikasiMarkReadView(LoginRequiredMixin, View):
     """Tandai satu notifikasi sebagai dibaca (POST atau AJAX)."""
@@ -38,4 +47,21 @@ class NotifikasiMarkAllReadView(LoginRequiredMixin, View):
         Notifikasi.objects.filter(id_user=request.user, is_read=False).update(is_read=True)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'status': 'ok'})
+        return redirect('notifikasi:list')
+
+
+class NotifikasiDeleteReadView(LoginRequiredMixin, View):
+    """Hapus semua notifikasi user yang SUDAH dibaca (is_read=True).
+
+    Notifikasi yang belum dibaca sengaja tidak dihapus supaya user tidak
+    kehilangan informasi yang belum sempat dilihat. Difilter id_user agar
+    user hanya bisa menghapus notifikasi miliknya sendiri.
+    """
+
+    def post(self, request):
+        deleted, _ = Notifikasi.objects.filter(
+            id_user=request.user, is_read=True
+        ).delete()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'ok', 'deleted': deleted})
         return redirect('notifikasi:list')

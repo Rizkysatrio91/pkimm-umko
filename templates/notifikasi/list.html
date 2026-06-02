@@ -7,15 +7,27 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-maroon-dark">Semua Notifikasi</h2>
-        {% if notifikasi_list %}
-        <form method="post" action="{% url 'notifikasi:mark_all_read' %}">
-            {% csrf_token %}
-            <button type="submit"
-                    class="text-sm text-maroon hover:text-maroon-dark font-medium transition">
-                Tandai Semua Dibaca
-            </button>
-        </form>
-        {% endif %}
+        <div class="flex items-center gap-4">
+            {% if notifikasi_list %}
+            <form method="post" action="{% url 'notifikasi:mark_all_read' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="text-sm text-maroon hover:text-maroon-dark font-medium transition">
+                    Tandai Semua Dibaca
+                </button>
+            </form>
+            {% endif %}
+            {% if has_read %}
+            <form method="post" action="{% url 'notifikasi:delete_read' %}"
+                  onsubmit="return confirm('Hapus semua notifikasi yang sudah dibaca? Tindakan ini tidak dapat dibatalkan.');">
+                {% csrf_token %}
+                <button type="submit"
+                        class="text-sm text-red-600 hover:text-red-700 font-medium transition">
+                    Hapus yang Sudah Dibaca
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
     {% if notifikasi_list %}
