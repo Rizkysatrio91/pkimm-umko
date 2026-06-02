@@ -4,6 +4,7 @@ import logging
 import re
 
 from django.contrib import messages
+from django.db import connection, transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -176,6 +177,19 @@ class ChatbotAPIView(View):
     RAG_DISTANCE_THRESHOLD = 0.55
     RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
 
+    # Kedalaman penelusuran index HNSW (pgvector) saat vector search.
+    # Default pgvector hanya 40: index hanya mengeksplorasi 40 kandidat terdekat
+    # SEBELUM filter WHERE (jenis_chatbot/is_active/status) + threshold distance
+    # diterapkan. Pada KB dengan >1 dokumen/jenis, ke-40 kandidat itu bisa habis
+    # terbuang oleh filter → query mengembalikan 0 chunk PADAHAL chunk relevan
+    # masih ada di tabel (status READY, jumlah_chunk > 0). Akibatnya pengetahuan
+    # seolah "hilang" walau datanya utuh, dan re-ingest hanya memulihkannya
+    # sementara karena menata ulang graf HNSW. Dengan menaikkan ef_search ke
+    # maksimum (1000, batas pgvector) recall mendekati exact untuk skala KB ini
+    # tanpa mengubah logika/threshold pencarian sama sekali. Tetap cepat
+    # (milidetik) karena jumlah chunk relatif kecil.
+    HNSW_EF_SEARCH = 1000
+
     # Regex untuk deteksi pertanyaan spesifik tentang Pasal/BAB tertentu.
     # Saat user tanya "pasal 7", keyword-match jauh lebih reliable daripada
     # vector search yang cenderung ngeluarkan distance >0.5 untuk query pendek.
@@ -338,23 +352,47 @@ class ChatbotAPIView(View):
                     .annotate(distance=CosineDistance('embedding', query_vec))
                     .order_by('distance')
                 )
-                # (a) hasil dalam threshold
-                tight = list(vector_qs.filter(
-                    distance__lte=self.RAG_DISTANCE_THRESHOLD,
-                )[:self.RAG_TOP_K])
-                for c in tight:
-                    _push(c, float(c.distance))
+                # Jalankan vector search di dalam satu transaksi supaya
+                # `SET LOCAL hnsw.ef_search` berlaku untuk query ORM berikutnya
+                # pada koneksi yang sama (SET LOCAL hanya bertahan selama
+                # transaksi). Tanpa ini, ef_search default (40) membuat filter
+                # WHERE bisa membuang seluruh kandidat → 0 chunk walau data ada.
+                vector_hits_before = len(results)
+                with transaction.atomic():
+                    if connection.vendor == 'postgresql':
+                        with connection.cursor() as cur:
+                            cur.execute(
+                                f'SET LOCAL hnsw.ef_search = {int(self.HNSW_EF_SEARCH)}'
+                            )
 
-                # (b) Fallback: aktif kalau results masih kosong setelah
-                # keyword + vector search. Cek hasil AKTUAL (bukan pola query)
-                # karena keyword search bisa saja tidak menemukan apapun meski
-                # pola pasal/bab terdeteksi (misal: nomor pasal tidak ada di KB).
-                keyword_found = any(r['distance'] == 0.0 for r in results)
-                if len(results) == 0 or (not keyword_found and len(results) < 2):
-                    top_fallback = list(vector_qs[:2])
-                    for c in top_fallback:
-                        if float(c.distance) < 0.7:
-                            _push(c, float(c.distance))
+                    # (a) hasil dalam threshold
+                    tight = list(vector_qs.filter(
+                        distance__lte=self.RAG_DISTANCE_THRESHOLD,
+                    )[:self.RAG_TOP_K])
+                    for c in tight:
+                        _push(c, float(c.distance))
+
+                    # (b) Fallback: aktif kalau results masih kosong setelah
+                    # keyword + vector search. Cek hasil AKTUAL (bukan pola query)
+                    # karena keyword search bisa saja tidak menemukan apapun meski
+                    # pola pasal/bab terdeteksi (misal: nomor pasal tidak ada di KB).
+                    keyword_found = any(r['distance'] == 0.0 for r in results)
+                    if len(results) == 0 or (not keyword_found and len(results) < 2):
+                        top_fallback = list(vector_qs[:2])
+                        for c in top_fallback:
+                            if float(c.distance) < 0.7:
+                                _push(c, float(c.distance))
+
+                # Diagnostik (DEBUG, tanpa query ekstra): chunk untuk jenis ini
+                # ADA & punya embedding, tapi vector search tidak menambah hasil.
+                # Berguna saat menelusuri kasus "pengetahuan tidak terambil";
+                # tidak di-WARNING karena pertanyaan off-topic publik wajar 0 hasil.
+                if len(results) == vector_hits_before:
+                    logger.debug(
+                        'RAG vector search 0 hasil untuk jenis=%s walau chunk ber-embedding '
+                        'tersedia (kemungkinan phrasing/threshold, bukan data hilang).',
+                        jenis,
+                    )
             except OpenAIServiceError:
                 logger.exception('Gagal embed query untuk RAG; pakai keyword saja')
 
