@@ -7,7 +7,7 @@
 {{ chatbot_config|json_script:"chatbot-config" }}
 
 <div class="max-w-2xl mx-auto" x-data="chatbot()">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col" style="height: 72vh;">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col chat-card">
 
         <!-- Header -->
         <div class="bg-maroon text-white px-5 py-3.5 flex items-center gap-3 flex-shrink-0">
@@ -37,7 +37,7 @@
             <div class="flex items-end gap-2">
                 <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
                 <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
-                    <p class="text-sm text-gray-700">Assalamualaikum wr. wb, Halo!! {{ user.username }}, ada yang bisa saya bantu? 👋</p>
+                    <p class="text-sm text-gray-700 chat-text">Assalamualaikum wr. wb, Halo!! {{ user.username }}, ada yang bisa saya bantu? 👋</p>
                 </div>
             </div>
 
@@ -47,7 +47,7 @@
                     <template x-if="msg.role === 'user'">
                         <div class="flex items-end gap-2 justify-end">
                             <div class="bg-[#5B1525] text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%] shadow-sm">
-                                <p class="text-sm" x-text="msg.content"></p>
+                                <p class="text-sm chat-text" x-text="msg.content"></p>
                             </div>
                         </div>
                     </template>
@@ -55,7 +55,7 @@
                         <div class="flex items-end gap-2">
                             <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
                             <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
-                                <p class="text-sm text-gray-700 whitespace-pre-line" x-text="msg.content"></p>
+                                <p class="text-sm text-gray-700 whitespace-pre-line chat-text" x-text="msg.content"></p>
                             </div>
                         </div>
                     </template>
@@ -94,7 +94,7 @@
         </div>
 
         <!-- Input -->
-        <div class="border-t border-gray-100 bg-white p-3 flex-shrink-0">
+        <div class="border-t border-gray-100 bg-white px-3 pt-3 chat-input-bar flex-shrink-0">
             <form @submit.prevent="sendMessage(inputText)" class="flex items-center gap-2">
                 <!-- Honeypot anti-bot (lihat catatan di chatbot_publik.html) -->
                 <input type="text" name="website" x-model="honeypot" tabindex="-1"
@@ -105,7 +105,7 @@
                        :disabled="loading || rateLimited"
                        :maxlength="800"
                        :class="rateLimited ? 'opacity-50 cursor-not-allowed' : ''"
-                       class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition text-sm outline-none">
+                       class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition chat-input-field outline-none">
                 <button type="submit" :disabled="loading || rateLimited || !inputText.trim()"
                         class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

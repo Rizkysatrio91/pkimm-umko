@@ -16,7 +16,7 @@
 <body class="h-full bg-maroon" x-data="chatbot()">
 {{ chatbot_config|json_script:"chatbot-config" }}
 
-<div class="flex flex-col h-screen max-w-lg mx-auto">
+<div class="flex flex-col chat-screen max-w-lg mx-auto">
 
     <!-- ====== HEADER ====== -->
     <div class="bg-maroon px-4 pt-safe flex items-center gap-3 py-4 flex-shrink-0">
@@ -25,7 +25,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
         </a>
-        <p class="flex-1 text-center font-semibold text-white text-base">Asisten Virtual IMM</p>
+        <p class="flex-1 text-center font-semibold text-white text-base sm:text-lg truncate">Asisten Virtual IMM</p>
         <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
             <svg class="w-5 h-5 text-gold" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
@@ -37,9 +37,9 @@
     <div class="bg-maroon px-4 pb-6 text-center flex-shrink-0">
         <picture>
             <source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}">
-            <img src="{% static 'images/logo_AI.png' %}" alt="Asisten AI Virtual IMM" width="64" height="64" fetchpriority="high" class="w-16 h-16 rounded-full object-cover border-2 border-white/30 shadow-lg mx-auto mb-3">
+            <img src="{% static 'images/logo_AI.png' %}" alt="Asisten AI Virtual IMM" width="64" height="64" fetchpriority="high" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white/30 shadow-lg mx-auto mb-3">
         </picture>
-        <p class="text-white font-bold text-base">Halo! Saya Asisten IMM FTIK UMKO 👋</p>
+        <p class="text-white font-bold text-sm sm:text-base">Halo! Saya Asisten IMM FTIK UMKO 👋</p>
         <p class="text-white/60 text-xs mt-1">Saya siap menjawab pertanyaanmu seputar IMM-an</p>
         <!-- Quick Topic Pills -->
         <div class="flex flex-wrap justify-center gap-2 mt-4" x-show="messages.length === 0">
@@ -63,8 +63,8 @@
         <!-- Welcome Message (static) -->
         <div class="flex items-end gap-2">
             <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
-            <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[78%] shadow-sm">
-                <p class="text-sm text-gray-700">Assalamualaikum wr. wb, Halo!! Saya asisten virtual IMM FTIK UMKO. Ada yang bisa saya bantu?</p>
+            <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                <p class="text-sm text-gray-700 chat-text">Assalamualaikum wr. wb, Halo!! Saya asisten virtual IMM FTIK UMKO. Ada yang bisa saya bantu?</p>
             </div>
         </div>
 
@@ -73,16 +73,16 @@
             <div>
                 <template x-if="msg.role === 'user'">
                     <div class="flex items-end gap-2 justify-end">
-                        <div class="bg-[#5B1525] text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[78%] shadow-sm">
-                            <p class="text-sm" x-text="msg.content"></p>
+                        <div class="bg-[#5B1525] text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                            <p class="text-sm chat-text" x-text="msg.content"></p>
                         </div>
                     </div>
                 </template>
                 <template x-if="msg.role === 'bot'">
                     <div class="flex items-end gap-2">
                         <picture><source type="image/webp" srcset="{% static 'images/logo_AI.webp' %}"><img src="{% static 'images/logo_AI.png' %}" alt="AI" width="28" height="28" loading="lazy" class="w-7 h-7 rounded-full object-cover flex-shrink-0"></picture>
-                        <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[78%] shadow-sm">
-                            <p class="text-sm text-gray-700 whitespace-pre-line" x-text="msg.content"></p>
+                        <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%] shadow-sm">
+                            <p class="text-sm text-gray-700 whitespace-pre-line chat-text" x-text="msg.content"></p>
                         </div>
                     </div>
                 </template>
@@ -121,7 +121,7 @@
     </div>
 
     <!-- ====== INPUT AREA ====== -->
-    <div class="bg-white border-t border-gray-100 px-4 py-3 flex-shrink-0">
+    <div class="bg-white border-t border-gray-100 px-4 pt-3 chat-input-bar flex-shrink-0">
         <form @submit.prevent="sendMessage(inputText)" class="flex items-center gap-2">
             <!-- Honeypot: jebakan untuk bot. Disembunyikan dari user lewat
                  inline style + aria-hidden + autocomplete=off. Bot otomatis
@@ -135,7 +135,7 @@
                    :disabled="loading || rateLimited"
                    :maxlength="800"
                    :class="rateLimited ? 'opacity-50 cursor-not-allowed' : ''"
-                   class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition text-sm outline-none">
+                   class="flex-1 px-4 py-2.5 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-maroon transition chat-input-field outline-none">
             <button type="submit" :disabled="loading || rateLimited || !inputText.trim()"
                     aria-label="Kirim pesan"
                     class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">

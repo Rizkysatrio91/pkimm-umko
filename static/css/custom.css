@@ -342,6 +342,46 @@ button:focus {
 .typing-dot:nth-child(3) { animation: typing-dot 1.4s ease-in-out 0.4s infinite; }
 .chat-bubble-enter { animation: fadeInUp 0.3s ease-out forwards; }
 
+/* ── Chatbot Responsive (semua ukuran HP) ──
+   Memakai 100dvh agar input tidak tertutup URL-bar browser mobile. */
+.chat-screen {
+    height: 100vh;          /* fallback browser lama */
+    height: 100dvh;         /* mobile: dikurangi tinggi URL-bar dinamis */
+    overflow: hidden;
+}
+
+/* Tinggi kartu chat pendaftaran: penuh & adaptif di HP, tetap proporsional di desktop */
+.chat-card {
+    height: 72vh;
+    height: 72dvh;
+}
+@media (max-width: 1023px) {
+    .chat-card {
+        height: calc(100vh - 10rem);
+        height: calc(100dvh - 10rem);
+        min-height: 24rem;
+    }
+}
+
+/* Bar input: tambahkan safe-area bawah (home-indicator iPhone) tanpa hilangkan padding */
+.chat-input-bar {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Field input: 16px di HP supaya iOS tidak auto-zoom saat fokus, 14px di layar besar */
+.chat-input-field {
+    font-size: 16px;
+}
+@media (min-width: 640px) {
+    .chat-input-field { font-size: 0.875rem; }
+}
+
+/* Bungkus kata/URL panjang agar tidak overflow horizontal di layar sempit */
+.chat-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
 /* === FORM === */
 .input-focus { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
 .input-focus:focus {
