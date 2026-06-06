@@ -31,7 +31,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="h-full bg-cream" x-data="{ mobileMenu: false, scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 50)">
+<body class="min-h-screen flex flex-col bg-cream" x-data="{ mobileMenu: false, scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 50)">
 
     <!-- Public Navbar -->
     <nav class="fixed top-0 left-0 right-0 z-50 navbar-scroll"
@@ -102,7 +102,7 @@
     </nav>
 
     {% block full_content %}
-    <main class="{% block main_class %}pt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% endblock %}">
+    <main class="flex-1 w-full {% block main_class %}pt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% endblock %}">
         {% include "components/alert.html" %}
         {% block content %}{% endblock %}
     </main>
