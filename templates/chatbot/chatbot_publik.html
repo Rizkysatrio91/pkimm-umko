@@ -129,8 +129,8 @@
             <input type="text" name="website" x-model="honeypot" tabindex="-1"
                    autocomplete="off" aria-hidden="true"
                    style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
-            <label for="chatbot-input" class="sr-only">Pertanyaan untuk asisten IMM</label>
             <input id="chatbot-input" type="text" x-model="inputText"
+                   aria-label="Pertanyaan untuk asisten IMM"
                    placeholder="Tanya seputar ke-IMM-an..."
                    :disabled="loading || rateLimited"
                    :maxlength="800"
@@ -139,8 +139,8 @@
             <button type="submit" :disabled="loading || rateLimited || !inputText.trim()"
                     aria-label="Kirim pesan"
                     class="w-10 h-10 bg-[#5B1525] text-white rounded-full flex items-center justify-center hover:bg-maroon transition disabled:opacity-50 flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
             </button>
         </form>
