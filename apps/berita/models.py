@@ -158,3 +158,14 @@ class Sejarah(models.Model):
 
     def __str__(self) -> str:
         return self.judul
+
+    def save(self, *args, **kwargs) -> None:
+        """Sanitasi HTML konten (CKEditor) sebelum simpan — anti-XSS.
+
+        Template ``profil/sejarah.html`` merender ``konten`` dengan ``|safe``,
+        jadi konten wajib disanitasi seperti VisiMisi/KataSambutan/Berita.
+        """
+        from core.sanitizer import sanitize_html
+        if self.konten:
+            self.konten = sanitize_html(self.konten)
+        super().save(*args, **kwargs)

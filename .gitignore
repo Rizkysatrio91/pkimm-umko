@@ -111,6 +111,10 @@ media_backup/
 static_backup/
 tmp_compression_test/
 
+# Hasil generate laporan (PDF/XLSX) — artefak output, bisa berisi PII (NPM).
+# Jangan commit; regenerasi dari data nyata berisiko bocor data kader.
+test_exports/
+
 # ===========================================
 # CLAUDE / AI TOOLS
 # ===========================================
