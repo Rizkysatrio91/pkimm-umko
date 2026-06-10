@@ -21,6 +21,73 @@ from core.constants import StatusInterview, StatusVerifikasi, UserRole
 from core.mixins import AdminRequiredMixin, PanitiaRequiredMixin, RoleRequiredMixin, TahapRequiredMixin
 
 
+# ─── Helper: scoping kelompok panitia ───────────────────────────────────────
+
+def get_kelompok_panitia(user):
+    """Return KelompokDAD yang di-PJ-kan ke user pada periode aktif, atau None.
+
+    Admin tidak terikat kelompok — selalu return None (artinya: lihat semua).
+    """
+    if getattr(user, 'role', None) != UserRole.PANITIA:
+        return None
+    periode = PeriodeDAD.get_active_period()
+    if not periode:
+        return None
+    return KelompokDAD.objects.filter(id_periode=periode, id_pj=user).first()
+
+
+class KelompokScopeMixin:
+    """Batasi akses penilaian panitia hanya ke peserta kelompoknya sendiri.
+
+    - Admin: bypass (lihat/koreksi semua kelompok).
+    - Panitia: hanya peserta dengan id_kelompok == kelompok yang di-PJ-kan.
+    - Panitia tanpa kelompok PJ: tidak melihat siapa pun + pesan peringatan.
+    """
+
+    @property
+    def kelompok_pj(self):
+        if not hasattr(self, '_kelompok_pj'):
+            self._kelompok_pj = get_kelompok_panitia(self.request.user)
+        return self._kelompok_pj
+
+    @property
+    def is_panitia_scoped(self) -> bool:
+        return self.request.user.role == UserRole.PANITIA
+
+    def scope_pendaftaran_qs(self, qs):
+        """Filter queryset PendaftaranDAD sesuai kelompok panitia."""
+        if not self.is_panitia_scoped:
+            return qs
+        if self.kelompok_pj is None:
+            return qs.none()
+        return qs.filter(id_kelompok=self.kelompok_pj)
+
+    def boleh_nilai(self, pendaftaran) -> bool:
+        """Cek apakah user boleh menilai peserta ini."""
+        if not self.is_panitia_scoped:
+            return True
+        return (
+            self.kelompok_pj is not None
+            and pendaftaran.id_kelompok_id == self.kelompok_pj.id_kelompok
+        )
+
+    def tolak_akses_kelompok(self, request, redirect_to):
+        """Pesan error + redirect saat panitia mengakses peserta kelompok lain."""
+        if self.kelompok_pj is None:
+            messages.error(
+                request,
+                'Anda belum ditetapkan sebagai PJ kelompok mana pun. '
+                'Hubungi admin untuk penetapan kelompok.',
+            )
+        else:
+            messages.error(
+                request,
+                f'Peserta ini bukan anggota Kelas {self.kelompok_pj.nama_kelompok}. '
+                'Anda hanya dapat menilai peserta kelompok Anda sendiri.',
+            )
+        return redirect(redirect_to)
+
+
 # ─── Panitia: Dashboard ─────────────────────────────────────────────────────
 
 class PanitiaDashboardView(PanitiaRequiredMixin, View):
@@ -75,8 +142,11 @@ class PanitiaDashboardView(PanitiaRequiredMixin, View):
 
 # ─── Panitia: Interview ─────────────────────────────────────────────────────
 
-class InterviewListView(PanitiaRequiredMixin, TahapRequiredMixin, ListView):
-    """Daftar peserta yang berhak mengikuti interview (lolos administrasi, belum ada nilai interview)."""
+class InterviewListView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScopeMixin, ListView):
+    """Daftar peserta yang berhak mengikuti interview (lolos administrasi, belum ada nilai interview).
+
+    Panitia hanya melihat peserta kelompoknya sendiri; admin melihat semua.
+    """
 
     allowed_tahap = ['interview', 'kegiatan_dad']
     template_name = 'penilaian/interview_list.html'
@@ -84,20 +154,26 @@ class InterviewListView(PanitiaRequiredMixin, TahapRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return PendaftaranDAD.objects.filter(
+        qs = PendaftaranDAD.objects.filter(
             status_verifikasi=StatusVerifikasi.LOLOS,
         ).select_related('id_biodata').annotate(
             has_interview=Count('nilai_interview_set'),
-        )
+        ).order_by('-tgl_daftar')  # eksplisit: annotate() menghapus ordering default Meta
+        return self.scope_pendaftaran_qs(qs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['tab'] = self.request.GET.get('tab', 'belum')
+        ctx['kelompok_pj'] = self.kelompok_pj
+        ctx['panitia_tanpa_kelompok'] = self.is_panitia_scoped and self.kelompok_pj is None
         return ctx
 
 
-class InterviewCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
-    """Input nilai interview untuk seorang peserta."""
+class InterviewCreateView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScopeMixin, View):
+    """Input nilai interview untuk seorang peserta.
+
+    Panitia hanya boleh menilai peserta kelompoknya sendiri; admin bebas.
+    """
 
     allowed_tahap = ['interview', 'kegiatan_dad']
     template_name = 'penilaian/interview_form.html'
@@ -111,6 +187,8 @@ class InterviewCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
 
     def get(self, request, pendaftaran_id):
         pendaftaran = self.get_pendaftaran(pendaftaran_id)
+        if not self.boleh_nilai(pendaftaran):
+            return self.tolak_akses_kelompok(request, 'panitia:interview_list')
         if NilaiInterview.objects.filter(id_pendaftaran=pendaftaran).exists():
             messages.info(request, 'Peserta ini sudah memiliki nilai interview.')
             return redirect('panitia:interview_list')
@@ -122,6 +200,8 @@ class InterviewCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
 
     def post(self, request, pendaftaran_id):
         pendaftaran = self.get_pendaftaran(pendaftaran_id)
+        if not self.boleh_nilai(pendaftaran):
+            return self.tolak_akses_kelompok(request, 'panitia:interview_list')
         if NilaiInterview.objects.filter(id_pendaftaran=pendaftaran).exists():
             messages.info(request, 'Peserta ini sudah memiliki nilai interview.')
             return redirect('panitia:interview_list')
@@ -143,13 +223,24 @@ class InterviewCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
         })
 
 
-class InterviewDetailView(PanitiaRequiredMixin, DetailView):
-    """Tampilkan detail nilai interview (5 kategori × 3 sub-item)."""
+class InterviewDetailView(PanitiaRequiredMixin, KelompokScopeMixin, DetailView):
+    """Tampilkan detail nilai interview (5 kategori × 3 sub-item).
+
+    Panitia hanya bisa melihat detail nilai peserta kelompoknya sendiri.
+    """
 
     model = NilaiInterview
     template_name = 'penilaian/interview_detail.html'
     context_object_name = 'interview'
     pk_url_kwarg = 'pk'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('id_pendaftaran__id_biodata')
+        if not self.is_panitia_scoped:
+            return qs
+        if self.kelompok_pj is None:
+            return qs.none()
+        return qs.filter(id_pendaftaran__id_kelompok=self.kelompok_pj)
 
     def get_context_data(self, **kwargs):
         from apps.penilaian.forms import INTERVIEW_KATEGORI
@@ -179,8 +270,11 @@ class InterviewDetailView(PanitiaRequiredMixin, DetailView):
 
 # ─── Panitia: Aktivitas DAD Harian ──────────────────────────────────────────
 
-class AktivitasListView(PanitiaRequiredMixin, TahapRequiredMixin, ListView):
-    """Daftar peserta yang lulus interview beserta status nilai aktivitas harian."""
+class AktivitasListView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScopeMixin, ListView):
+    """Daftar peserta yang lulus interview beserta status nilai aktivitas harian.
+
+    Panitia hanya melihat peserta kelompoknya sendiri; admin melihat semua.
+    """
 
     allowed_tahap = ['kegiatan_dad']
     template_name = 'penilaian/aktivitas_list.html'
@@ -188,9 +282,10 @@ class AktivitasListView(PanitiaRequiredMixin, TahapRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return PendaftaranDAD.objects.filter(
+        qs = PendaftaranDAD.objects.filter(
             nilai_interview_set__status_interview=StatusInterview.LULUS,
         ).select_related('id_biodata').prefetch_related('nilai_aktivitas_set').distinct()
+        return self.scope_pendaftaran_qs(qs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -223,11 +318,16 @@ class AktivitasListView(PanitiaRequiredMixin, TahapRequiredMixin, ListView):
                     'tersedia': info.get('tersedia', True),
                 })
         ctx['is_admin'] = is_admin
+        ctx['kelompok_pj'] = self.kelompok_pj
+        ctx['panitia_tanpa_kelompok'] = self.is_panitia_scoped and self.kelompok_pj is None
         return ctx
 
 
-class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
-    """Input nilai aktivitas harian untuk seorang peserta."""
+class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScopeMixin, View):
+    """Input nilai aktivitas harian untuk seorang peserta.
+
+    Panitia hanya boleh menilai peserta kelompoknya sendiri; admin bebas.
+    """
 
     allowed_tahap = ['kegiatan_dad']
     template_name = 'penilaian/aktivitas_form.html'
@@ -259,6 +359,8 @@ class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
 
     def get(self, request, pendaftaran_id, hari_ke):
         pendaftaran = self.get_pendaftaran(pendaftaran_id)
+        if not self.boleh_nilai(pendaftaran):
+            return self.tolak_akses_kelompok(request, 'panitia:aktivitas_list')
         ok, err = self._validasi_tanggal_input(request, hari_ke)
         if not ok:
             messages.error(request, err)
@@ -279,6 +381,8 @@ class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, View):
 
     def post(self, request, pendaftaran_id, hari_ke):
         pendaftaran = self.get_pendaftaran(pendaftaran_id)
+        if not self.boleh_nilai(pendaftaran):
+            return self.tolak_akses_kelompok(request, 'panitia:aktivitas_list')
         ok, err = self._validasi_tanggal_input(request, hari_ke)
         if not ok:
             messages.error(request, err)
