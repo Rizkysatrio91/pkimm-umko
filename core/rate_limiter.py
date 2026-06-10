@@ -13,17 +13,11 @@ CATATAN PENTING (post-pentest April-May 2026):
   - Untuk endpoint mahal (chatbot/OpenAI), batas anonymous lebih ketat
     daripada user terotentikasi.
 """
-import re
 import time
 
 from django.core.cache import cache
 
 from core.cloudflare_ips import is_cloudflare_ip
-
-# Format sesi_id yang sah (UUID v4 dari crypto.randomUUID() di frontend).
-# Dipakai untuk memvalidasi sesi_id sebelum dijadikan bagian kunci cache —
-# menolak nilai aneh/panjang yang bisa mengotori tabel cache.
-_SESI_ID_RE = re.compile(r'^[A-Za-z0-9-]{8,64}$')
 
 
 # IP loopback yang dianggap sebagai proxy lokal (nginx → gunicorn).
@@ -205,17 +199,13 @@ class RateLimiter:
     # === CHATBOT RATE LIMIT ===
     #
     # Strategi berlapis:
-    #   1. Min interval (1.0 dtk per IP): bunuh request konkuren — k6 dengan
-    #      10 VUs hampir bersamaan akan disaring di lapis ini.
-    #   2. Per-menit, per-jam, per-hari: per identifier — user login per akun,
-    #      anonim per SESI percakapan (fallback per IP). Per-sesi dipilih
-    #      karena CGNAT operator seluler membuat banyak pengguna berbagi
-    #      satu IP publik.
-    #   3. PER_IP_HARD_DAY: pagar keras per-IP terlepas dari akun/sesi —
-    #      ganti-ganti sesi_id TIDAK menambah jatah karena lapis ini tetap
-    #      menghitung per IP.
-    #   4. Per-sesi minimum interval ditambahkan di views (1.5 dtk antar
-    #      pesan di session yang sama).
+    #   1. Min interval (1.0 dtk): bunuh request konkuren — k6 dengan 10 VUs
+    #      hampir bersamaan akan disaring di lapis ini.
+    #   2. Per-menit, per-jam, per-hari: per identifier user/ip.
+    #   3. Per-IP terpisah (untuk user terotentikasi): satu sesi tidak bisa
+    #      dipakai di banyak mesin sekaligus untuk membakar budget.
+    #   4. Per-sesi minimum interval ditambahkan di views (2 dtk antar pesan
+    #      di session yang sama).
     #
     # Anonymous lebih ketat karena anonymous = tidak ada kontrak, mahal.
 
@@ -229,28 +219,14 @@ class RateLimiter:
     USER_PER_HOUR = 40
     USER_PER_DAY = 150
 
-    # Pagar keras per IP terlepas dari status auth/sesi: anti session-sharing
-    # DAN plafon abuse untuk anonim yang merotasi sesi_id. Satu IP — berapa
-    # pun jumlah akun/sesi di baliknya — maksimal segini per hari.
+    # Limit per IP terlepas dari status auth (anti session-sharing)
     PER_IP_HARD_DAY = 100
 
     @classmethod
-    def check_chatbot_limit(cls, request, jenis: str = 'umum', sesi_id: str = '') -> tuple:
+    def check_chatbot_limit(cls, request, jenis: str = 'umum') -> tuple:
         """
-        Batasi chatbot per user/sesi/IP.
+        Batasi chatbot per IP/user.
         Return: (is_limited, pesan_untuk_user, retry_seconds)
-
-        Identifier kuota menit/jam/hari:
-          - User login   → per akun (user_<id>).
-          - Anonim       → per SESI percakapan (sesi_<uuid>) bila sesi_id valid,
-                           fallback per IP. Alasan: operator seluler Indonesia
-                           memakai CGNAT — satu IP publik (mis. 114.10.x.x
-                           Telkomsel) dipakai bersama ratusan pengguna, sehingga
-                           kuota per-IP dihabiskan "patungan" oleh orang-orang
-                           yang tidak saling kenal (kejadian nyata 2026-06-10).
-        Pagar anti-abuse tetap per-IP dan TIDAK bisa di-bypass dengan ganti
-        sesi_id: PER_IP_HARD_DAY di bawah + min-interval per IP di views +
-        signed chat_token + BudgetLimiter bulanan.
         """
         from datetime import datetime, timedelta
 
@@ -262,8 +238,7 @@ class RateLimiter:
             per_hour = cls.USER_PER_HOUR
             per_day = cls.USER_PER_DAY
         else:
-            sesi_valid = bool(_SESI_ID_RE.fullmatch(sesi_id or ''))
-            identifier = f"sesi_{sesi_id}" if sesi_valid else f"ip_{ip}"
+            identifier = f"ip_{ip}"
             per_min = cls.ANON_PER_MIN
             per_hour = cls.ANON_PER_HOUR
             per_day = cls.ANON_PER_DAY
