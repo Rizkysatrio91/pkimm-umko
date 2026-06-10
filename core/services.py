@@ -392,7 +392,15 @@ Pertanyaan dianggap AMBIGU jika:
   - Tidak menyebut periode kepengurusan (jika relevan)
   - Tidak menyebut unit/lembaga spesifik
 
-Jika pertanyaan AMBIGU, JANGAN langsung menjawab.
+Pertanyaan TIDAK dianggap ambigu hanya karena memakai singkatan organisasi
+(AD/ART, DAD, PK, dsb). Jika bagian "PENGETAHUAN DARI DATABASE" di bawah
+memuat konten yang relevan dengan singkatan tersebut, anggap user merujuk
+ke konteks IMM dan JAWAB LANGSUNG berdasarkan konten itu — boleh merangkum
+atau menyimpulkan dari beberapa bagian knowledge base sekaligus, selama
+tidak menambahkan fakta yang tidak tertulis di sana.
+
+Jika pertanyaan AMBIGU dan knowledge base tidak menyelesaikan ambiguitasnya,
+JANGAN langsung menjawab.
 Balik bertanya dengan pilihan opsi yang jelas dan ringkas.
 
 ### 3. FORMAT TANYA BALIK (gunakan ini sebagai template)
@@ -711,11 +719,25 @@ Tugas Anda: menyunting naskah berita HTML berikut sesuai 5 ATURAN MUTLAK di bawa
         else:
             # Tidak ada knowledge — JANGAN izinkan jawab dari pengetahuan umum AI
             # karena akan menyebabkan halusinasi data organisasi yang tidak valid.
+            # TAPI jangan langsung mati gaya: pertanyaan singkat/ambigu (mis.
+            # "apa itu ad art") boleh dibalas SATU pertanyaan klarifikasi —
+            # jawaban user berikutnya akan jadi query retrieval yang lebih jelas.
             full_system = (
                 base_prompt
                 + "\n[KNOWLEDGE BASE KOSONG UNTUK PERTANYAAN INI]\n"
-                "WAJIB jawab dengan template berikut dan JANGAN tambahkan informasi apapun:\n"
-                "'Maaf, saya belum memiliki informasi mengenai hal tersebut saat ini. "
+                "Tidak ditemukan konten knowledge base yang cocok dengan pertanyaan ini.\n"
+                "ATURAN KETAT:\n"
+                "1. DILARANG menjawab substansi pertanyaan dari pengetahuan umum AI.\n"
+                "2. Jika pertanyaan tampak tentang IMM tetapi SINGKAT, AMBIGU, atau "
+                "memakai SINGKATAN, ajukan SATU pertanyaan klarifikasi singkat dengan "
+                "menyebutkan kemungkinan yang Anda maksud. Contoh:\n"
+                "   User: 'apa itu ad art'\n"
+                "   Jawab: 'Apakah yang Anda maksud AD/ART (Anggaran Dasar dan "
+                "Anggaran Rumah Tangga) IMM? Jika ya, silakan konfirmasi dan saya "
+                "carikan informasinya.'\n"
+                "3. Jika pertanyaan sudah jelas dan spesifik namun datanya memang "
+                "tidak ada, jawab dengan template berikut tanpa tambahan apapun:\n"
+                "'Maaf, saya belum memiliki informasi mengenai [topik tersebut] saat ini. "
                 "Pertanyaan Anda akan kami sampaikan kepada admin agar informasi terkait "
                 "dapat segera ditambahkan.'"
             )

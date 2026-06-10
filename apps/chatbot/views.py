@@ -267,15 +267,24 @@ class ChatbotAPIView(View):
         parts.append(pesan[cursor:])
         return ''.join(parts)
 
-    def _find_matching_chunks(self, pesan: str, jenis: str) -> list:
-        """Hybrid search RAG: keyword (pasal/bab) + vector (semantic).
+    def _find_matching_chunks(self, pesan: str, jenis: str, sesi_id: str = '') -> list:
+        """Hybrid search RAG: keyword (pasal/bab) + judul dokumen + vector.
 
         Strategi:
           1. Keyword match dulu — kalau user tanya "pasal 7" / "bab III",
              cari chunk yang teks/metadata-nya berisi pattern tersebut.
              Ini recall TINGGI untuk pertanyaan eksplisit.
+          1c. Judul dokumen — kalau user menyebut nama dokumen KB (mis.
+             "apa itu ad art" ↔ dokumen "AD ART IMM"), ambil chunk pembuka
+             dokumen itu. Deterministik: tidak bergantung jarak vektor yang
+             rapuh untuk query singkatan pendek.
           2. Vector search untuk pertanyaan natural / konseptual.
           3. Dedupe by id_chunk — keyword diprioritaskan (distance=0).
+
+        ``sesi_id``: untuk pertanyaan lanjutan pendek (≤2 kata bermakna,
+        mis. "iya" / "ad art" setelah klarifikasi bot), konteks pencarian
+        diperkaya dengan pesan user sebelumnya — sama seperti
+        ``_find_matching_datasets``.
 
         Return list[dict] (teks, seksi, judul_dokumen, distance).
         """
@@ -287,6 +296,23 @@ class ChatbotAPIView(View):
 
         if not base_qs.exists():
             return []
+
+        # Konteks follow-up: pesan sangat pendek digabung dengan pesan user
+        # sebelumnya supaya "iya" / "yang imm" setelah pertanyaan klarifikasi
+        # bot tetap menemukan chunk yang sama dengan pertanyaan awalnya.
+        kata_bermakna = [
+            k for k in pesan.lower().split()
+            if k not in self.STOPWORDS and len(k) >= 2
+        ]
+        if len(kata_bermakna) <= 2 and sesi_id:
+            last_msg = (
+                RiwayatChat.objects.filter(sesi_id=sesi_id)
+                .order_by('-waktu_chat')
+                .values_list('pesan_user', flat=True)
+                .first()
+            )
+            if last_msg:
+                pesan = f'{pesan} {last_msg}'.strip()
 
         results: list[dict] = []
         seen_ids: set[int] = set()
@@ -351,6 +377,45 @@ class ChatbotAPIView(View):
                         if len(results) >= self.RAG_MAX_CHUNKS:
                             break
 
+        # Penanda hasil struktural (Pasal/BAB) — dipakai untuk mengetatkan
+        # threshold vector di Step 2. Harus diambil SEBELUM Step 1c karena
+        # chunk pembuka dokumen bukan jawaban struktural.
+        keyword_found = bool(results)
+
+        # === Step 1c: user menyebut dokumen KB by nama/judul ===
+        # Kasus nyata: "apa itu ad art" — embedding singkatan pendek berjarak
+        # >threshold ke chunk per-Pasal sehingga vector search 0 hasil, padahal
+        # dokumen "AD ART IMM" ada di KB. Solusi deterministik: cocokkan kata
+        # bermakna pada JUDUL dokumen terhadap pesan (yang sudah di-expand
+        # singkatannya), lalu ambil chunk pembuka dokumen (Mukadimah/BAB I —
+        # nama, asas, tujuan) sebagai konteks definisi.
+        if not results:
+            haystack = f'{pesan} {self._expand_query_for_embedding(pesan)}'.lower()
+            judul_per_dokumen = (
+                base_qs.values_list('id_dokumen', 'id_dokumen__judul')
+                .distinct()
+            )
+            for doc_id, judul in judul_per_dokumen:
+                kata_judul = [
+                    k for k in re.split(r'\W+', (judul or '').lower())
+                    if k and k not in self.STOPWORDS and len(k) >= 2
+                ]
+                if not kata_judul:
+                    continue
+                cocok = sum(
+                    1 for k in kata_judul
+                    if re.search(rf'\b{re.escape(k)}\b', haystack)
+                )
+                # Minimal 2 kata judul cocok (atau seluruh kata untuk judul
+                # 1 kata) DAN ≥50% kata judul ada di pesan — cukup ketat
+                # untuk menghindari trigger dari 1 kata umum.
+                full_match = cocok == len(kata_judul)
+                if not (full_match or (cocok >= 2 and cocok / len(kata_judul) >= 0.5)):
+                    continue
+                pembuka = base_qs.filter(id_dokumen=doc_id).order_by('urutan')[:4]
+                for c in pembuka:
+                    _push(c, 0.0)
+
         # === Step 2: vector search untuk semantic similarity ===
         # Strategi 2 lapis:
         #   (a) Filter dengan threshold ketat → ambil yang sangat relevan
@@ -384,7 +449,9 @@ class ChatbotAPIView(View):
                 # mirip kata "Anggaran Rumah Tangga") yang membuat konteks ke AI
                 # berisik dan memicu penolakan. Saat itu, vektor hanya menambah
                 # yang nyaris identik. Tanpa keyword match, vektor bekerja penuh.
-                keyword_found = any(r['distance'] == 0.0 for r in results)
+                # CATATAN: keyword_found di-set SEBELUM Step 1c — chunk pembuka
+                # dari judul dokumen (juga distance 0.0) tidak boleh mengetatkan
+                # threshold, karena vektor masih perlu melengkapi konteksnya.
                 tight_threshold = (
                     0.30 if keyword_found else self.RAG_DISTANCE_THRESHOLD
                 )
@@ -748,7 +815,9 @@ class ChatbotAPIView(View):
 
         # Vector search ke chunk PDF. Kalau OpenAI embedding gagal atau belum
         # ada dokumen → return [] (graceful fallback ke dataset manual saja).
-        matching_chunks = self._find_matching_chunks(pesan, jenis)
+        # sesi_id diteruskan supaya follow-up pendek ("iya", "ad art") setelah
+        # pertanyaan klarifikasi bot tetap menemukan konteks yang sama.
+        matching_chunks = self._find_matching_chunks(pesan, jenis, sesi_id)
 
         # === LANGKAH 4: CEK BUDGET ===
         has_budget = BudgetLimiter.can_use_ai(BudgetLimiter.COST_CHATBOT)
