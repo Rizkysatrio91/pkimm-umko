@@ -29,6 +29,7 @@ from core.constants import JenisChatbot
 from core.exceptions import OpenAIServiceError
 from core.mixins import AdminRequiredMixin, CalonKaderRequiredMixin
 from core.rate_limiter import RateLimiter
+from core.roman import bab_number_variants
 from core.security import issue_chat_token, verify_chat_token
 from core.services import OpenAIService
 
@@ -175,7 +176,11 @@ class ChatbotAPIView(View):
     # Pasal/BAB eksplisit ditangani keyword search (distance=0.0) — ini untuk
     # query semantik seperti "apa tujuan IMM" atau "syarat menjadi anggota".
     RAG_DISTANCE_THRESHOLD = 0.55
-    RAG_TOP_K = 5  # ambil 5 chunk terdekat per query
+    RAG_TOP_K = 5  # ambil 5 chunk terdekat per query (vector semantic)
+    # Batas total chunk yang dikirim ke AI. Lebih besar dari RAG_TOP_K karena
+    # pertanyaan "isi BAB X" sah membutuhkan banyak chunk (satu bab = banyak
+    # Pasal). Tetap dibatasi agar prompt tidak membengkak.
+    RAG_MAX_CHUNKS = 12
 
     # Kedalaman penelusuran index HNSW (pgvector) saat vector search.
     # Default pgvector hanya 40: index hanya mengeksplorasi 40 kandidat terdekat
@@ -319,17 +324,32 @@ class ChatbotAPIView(View):
 
         bab_match = self.BAB_REGEX.search(pesan)
         if bab_match:
-            bab_num = bab_match.group(1)
-            exact_bab = re.compile(
-                rf'\bbab\s+{re.escape(bab_num)}\b', re.IGNORECASE
-            )
-            candidates = base_qs.filter(
-                Q(teks__icontains=f'bab {bab_num}') |
-                Q(metadata_seksi__icontains=f'bab {bab_num}')
-            ).order_by('id_chunk')[:20]
-            for c in candidates:
-                if exact_bab.search(c.teks) or exact_bab.search(c.metadata_seksi or ''):
-                    _push(c, 0.0)
+            # Normalisasi nomor BAB ke SEMUA bentuk setara (Arab + Romawi),
+            # supaya "bab 2" tetap menemukan dokumen yang menulis "BAB II"
+            # dan sebaliknya — generik untuk dokumen sumber apa pun.
+            variants = bab_number_variants(bab_match.group(1))
+            if variants:
+                filter_q = Q()
+                for v in variants:
+                    filter_q |= (
+                        Q(teks__icontains=f'bab {v}')
+                        | Q(metadata_seksi__icontains=f'bab {v}')
+                    )
+                exact_patterns = [
+                    re.compile(rf'\bbab\s+{re.escape(v)}\b', re.IGNORECASE)
+                    for v in variants
+                ]
+                # Ambil SELURUH chunk milik BAB ini (urut dokumen), bukan hanya
+                # baris yang memuat string-nya. Karena chunker menyisipkan label
+                # BAB ke metadata tiap Pasal, ini mengembalikan isi bab lengkap
+                # saat user minta "isi BAB X".
+                candidates = base_qs.filter(filter_q).order_by('id_dokumen', 'urutan')[:40]
+                for c in candidates:
+                    meta = c.metadata_seksi or ''
+                    if any(rx.search(c.teks) or rx.search(meta) for rx in exact_patterns):
+                        _push(c, 0.0)
+                        if len(results) >= self.RAG_MAX_CHUNKS:
+                            break
 
         # === Step 2: vector search untuk semantic similarity ===
         # Strategi 2 lapis:
@@ -396,9 +416,10 @@ class ChatbotAPIView(View):
             except OpenAIServiceError:
                 logger.exception('Gagal embed query untuk RAG; pakai keyword saja')
 
-        # Cap total hasil — keyword + vector. Cukup untuk konteks AI tanpa
-        # membuat prompt terlalu panjang.
-        return results[:self.RAG_TOP_K + 3]
+        # Cap total hasil — keyword + vector. RAG_MAX_CHUNKS lebih besar dari
+        # RAG_TOP_K supaya permintaan satu BAB penuh tetap utuh, tapi tetap
+        # dibatasi agar prompt tidak membengkak.
+        return results[:self.RAG_MAX_CHUNKS]
 
     def _find_matching_datasets(self, pesan: str, jenis: str, sesi_id: str = '') -> list:
         """
@@ -514,7 +535,10 @@ class ChatbotAPIView(View):
                 "2. Kutip nomor pasal/BAB PERSIS seperti tertulis "
                 "(contoh: 'Pasal 7 AD menyatakan...').\n"
                 "3. JANGAN tambahkan fakta yang tidak tertulis di konten di bawah ini.\n"
-                "4. Jika konten yang ada tidak secara langsung menjawab pertanyaan, "
+                "4. Jika user meminta ISI sebuah BAB/Pasal/bagian dan kontennya "
+                "tersedia di bawah, SAJIKAN isinya secara runtut dan lengkap "
+                "(boleh diringkas rapi) — JANGAN menolak atau bertanya balik.\n"
+                "5. Jika konten yang ada benar-benar tidak menjawab pertanyaan, "
                 "katakan tidak memiliki informasi — JANGAN mengarang dari asumsi."
             )
 

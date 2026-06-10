@@ -260,6 +260,12 @@ class PDFIngestService:
         match = re.match(r'\[(AD|ART)\]', seksi or '')
         return match.group(1) if match else ''
 
+    @staticmethod
+    def _seksi_bab(seksi: str) -> str:
+        """Ekstrak nomor BAB dari seksi (mis. 'II'). Return '' kalau tidak ada."""
+        match = re.search(r'\bBAB\s+([IVXLCDM\d]+)', seksi or '', re.IGNORECASE)
+        return match.group(1).upper() if match else ''
+
     def _merge_short_sections(self, sections: list[dict]) -> list[dict]:
         """Gabung section pendek konsekutif sampai mencapai TARGET_CHUNK_CHARS.
 
@@ -297,12 +303,17 @@ class PDFIngestService:
                 continue
             seksi = sec.get('seksi', '')
 
-            # Jangan gabung lintas batas AD/ART. Kalau buffer berisi seksi
-            # dari part berbeda, flush dulu sebelum mulai entry baru.
+            # Jangan gabung lintas batas AD/ART maupun lintas BAB. Kalau buffer
+            # berisi seksi dari part/BAB berbeda, flush dulu sebelum mulai entry
+            # baru — supaya tiap chunk konsisten satu BAB dan "isi BAB X" presisi.
             if buf_teks:
                 buf_part = self._seksi_part(buf_seksi_last)
                 cur_part = self._seksi_part(seksi)
+                buf_bab = self._seksi_bab(buf_seksi_last)
+                cur_bab = self._seksi_bab(seksi)
                 if buf_part and cur_part and buf_part != cur_part:
+                    flush()
+                elif buf_bab and cur_bab and buf_bab != cur_bab:
                     flush()
 
             # Section yang sudah cukup besar — flush buffer dulu, lalu
@@ -362,12 +373,21 @@ class PDFIngestService:
         # Track posisi dokumen: AD (default) → ART setelah boundary.
         current_part = 'AD'
         seen_bab_high = False  # Sudah pernah lihat BAB ≥ 2 di part ini
+        # Label BAB yang sedang aktif (mis. "BAB II ASAS, GERAKAN, DAN LAMBANG").
+        # Disisipkan ke metadata setiap Pasal di dalamnya supaya keanggotaan
+        # BAB tidak hilang — penting saat user minta "isi BAB X" (butuh semua
+        # Pasal di bawah BAB itu, bukan hanya baris judulnya).
+        current_bab = ''
+        bab_title_pending = False  # baris konten berikutnya = judul BAB (all-caps)
 
         def is_section_heading(line: str) -> bool:
             stripped = line.strip()
             if not stripped or len(stripped) > 100:
                 return False
             return any(p.match(stripped) for p in self.SECTION_PATTERNS)
+
+        def is_bab_heading(line: str) -> bool:
+            return self.BAB_NUMBER_PATTERN.match(line.strip()) is not None
 
         def get_bab_num(line: str) -> int | None:
             match = self.BAB_NUMBER_PATTERN.match(line)
@@ -388,6 +408,8 @@ class PDFIngestService:
             if current_part == 'AD' and self.ART_BOUNDARY_PATTERN.match(stripped):
                 current_part = 'ART'
                 seen_bab_high = False
+                current_bab = ''
+                bab_title_pending = False
                 continue  # Skip baris boundary, jangan jadi konten
 
             # Boundary 2: BAB I muncul lagi setelah BAB ≥ 2
@@ -410,9 +432,32 @@ class PDFIngestService:
                         'teks': '\n'.join(current_lines).strip(),
                         'seksi': current_seksi,
                     })
-                current_seksi = with_prefix(stripped[:200])
+                if is_bab_heading(line):
+                    # Heading BAB → reset konteks bab; judul bab (baris all-caps
+                    # berikutnya) akan digabung ke label ini.
+                    current_bab = stripped[:120]
+                    bab_title_pending = True
+                    current_seksi = with_prefix(current_bab)
+                else:
+                    # Heading Pasal/Bagian → sisipkan konteks BAB induk supaya
+                    # metadata membawa info "BAB mana" (keanggotaan tidak hilang).
+                    bab_title_pending = False
+                    if current_bab:
+                        current_seksi = with_prefix(f"{current_bab} / {stripped}"[:180])
+                    else:
+                        current_seksi = with_prefix(stripped[:180])
                 current_lines = [line]
             else:
+                # Baris konten pertama setelah heading BAB, jika ALL-CAPS & pendek,
+                # adalah judul bab (mis. "ASAS, GERAKAN, DAN LAMBANG"). Gabungkan
+                # ke label bab supaya metadata informatif sekaligus cocok saat
+                # user mengetik judul babnya.
+                if (bab_title_pending and stripped and len(stripped) <= 80
+                        and not any(c.islower() for c in stripped)
+                        and any(c.isalpha() for c in stripped)):
+                    current_bab = f"{current_bab} {stripped}"[:120]
+                    current_seksi = with_prefix(current_bab)
+                bab_title_pending = False
                 current_lines.append(line)
 
         # Tutup section terakhir.
