@@ -798,7 +798,12 @@ class ChatbotAPIView(View):
                 )
 
         # === LANGKAH 1: RATE LIMIT ===
-        is_limited, limit_msg, retry_seconds = RateLimiter.check_chatbot_limit(request, jenis)
+        # sesi_id diteruskan: kuota anonim dihitung per sesi percakapan
+        # (bukan per IP) supaya pengguna CGNAT yang berbagi IP publik
+        # tidak saling menghabiskan jatah. Pagar per-IP tetap di dalam.
+        is_limited, limit_msg, retry_seconds = RateLimiter.check_chatbot_limit(
+            request, jenis, sesi_id=sesi_id,
+        )
         if is_limited:
             respon = f"{limit_msg} Terima kasih atas pengertiannya!"
             return JsonResponse({'success': True, 'respon': respon, 'rate_limited': True, 'retry_seconds': retry_seconds})
