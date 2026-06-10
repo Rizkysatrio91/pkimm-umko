@@ -298,7 +298,9 @@ class AktivitasListView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScopeM
         is_admin = self.request.user.role == UserRole.ADMIN
         tanggal_per_hari: dict[int, dict] = {}
         if periode and periode.tgl_mulai_kegiatan:
-            mulai_date = periode.tgl_mulai_kegiatan.date()
+            # PENTING: konversi ke waktu lokal (WIB) dulu — .date() langsung pada
+            # datetime aware (UTC) menggeser tanggal mundur 1 hari untuk jam < 07:00.
+            mulai_date = timezone.localtime(periode.tgl_mulai_kegiatan).date()
             for i in range(1, 4):
                 tgl = mulai_date + timedelta(days=i - 1)
                 tanggal_per_hari[i] = {
@@ -349,7 +351,10 @@ class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScop
         periode = PeriodeDAD.get_active_period()
         if not periode or not periode.tgl_mulai_kegiatan:
             return True, None
-        tgl_hari_ke = periode.tgl_mulai_kegiatan.date() + timedelta(days=int(hari_ke) - 1)
+        # PENTING: konversi ke waktu lokal (WIB) dulu — .date() langsung pada
+        # datetime aware (UTC) menggeser tanggal mundur 1 hari untuk jam < 07:00.
+        mulai_date = timezone.localtime(periode.tgl_mulai_kegiatan).date()
+        tgl_hari_ke = mulai_date + timedelta(days=int(hari_ke) - 1)
         if timezone.localdate() < tgl_hari_ke:
             return False, (
                 f'Penilaian Hari ke-{hari_ke} baru dapat diinput mulai '
