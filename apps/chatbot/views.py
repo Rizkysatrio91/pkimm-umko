@@ -378,6 +378,16 @@ class ChatbotAPIView(View):
                 # transaksi). Tanpa ini, ef_search default (40) membuat filter
                 # WHERE bisa membuang seluruh kandidat → 0 chunk walau data ada.
                 vector_hits_before = len(results)
+                # Kalau keyword (BAB/Pasal) sudah menemukan seksi yang diminta,
+                # itu jawaban struktural yang otoritatif. Jangan mengencerkannya
+                # dengan kemiripan semantik lintas-BAB (mis. BAB lain yang cuma
+                # mirip kata "Anggaran Rumah Tangga") yang membuat konteks ke AI
+                # berisik dan memicu penolakan. Saat itu, vektor hanya menambah
+                # yang nyaris identik. Tanpa keyword match, vektor bekerja penuh.
+                keyword_found = any(r['distance'] == 0.0 for r in results)
+                tight_threshold = (
+                    0.30 if keyword_found else self.RAG_DISTANCE_THRESHOLD
+                )
                 with transaction.atomic():
                     if connection.vendor == 'postgresql':
                         with connection.cursor() as cur:
@@ -387,7 +397,7 @@ class ChatbotAPIView(View):
 
                     # (a) hasil dalam threshold
                     tight = list(vector_qs.filter(
-                        distance__lte=self.RAG_DISTANCE_THRESHOLD,
+                        distance__lte=tight_threshold,
                     )[:self.RAG_TOP_K])
                     for c in tight:
                         _push(c, float(c.distance))
@@ -396,7 +406,6 @@ class ChatbotAPIView(View):
                     # keyword + vector search. Cek hasil AKTUAL (bukan pola query)
                     # karena keyword search bisa saja tidak menemukan apapun meski
                     # pola pasal/bab terdeteksi (misal: nomor pasal tidak ada di KB).
-                    keyword_found = any(r['distance'] == 0.0 for r in results)
                     if len(results) == 0 or (not keyword_found and len(results) < 2):
                         top_fallback = list(vector_qs[:2])
                         for c in top_fallback:
