@@ -683,9 +683,11 @@ class RundownListView(AdminRequiredMixin, View):
             for r in rundown_list:
                 hari_groups.setdefault(r.hari_ke, []).append(r)
 
+        # Tanpa sorted(): ikuti urutan queryset (kronologis by tanggal).
+        # sorted() alfabetis menempatkan "Kedatangan" setelah "Hari 3".
         return render(request, self.template_name, {
             'periode': periode,
-            'hari_groups': dict(sorted(hari_groups.items())),
+            'hari_groups': hari_groups,
             'total_sesi': len(rundown_list),
         })
 
@@ -1080,9 +1082,10 @@ class RundownPublicView(CalonKaderRequiredMixin, TahapRequiredMixin, View):
             for r in rundown_list:
                 hari_groups.setdefault(r.hari_ke, []).append(r)
 
+        # Tanpa sorted(): ikuti urutan queryset (kronologis by tanggal).
         return render(request, self.template_name, {
             'pendaftaran': pendaftaran,
-            'hari_groups': dict(sorted(hari_groups.items())),
+            'hari_groups': hari_groups,
         })
 
 
