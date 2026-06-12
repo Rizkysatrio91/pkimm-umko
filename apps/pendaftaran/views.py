@@ -805,7 +805,9 @@ class PanitiaAbsensiListView(PanitiaRequiredMixin, TahapRequiredMixin, View):
             if request.user.role == UserRole.ADMIN:
                 qr_list = QRAbsensi.objects.filter(
                     id_rundown__id_periode=periode,
-                ).select_related('id_rundown', 'id_kelompok')
+                ).select_related('id_rundown', 'id_kelompok').order_by(
+                    'id_rundown__tanggal', 'id_rundown__urutan', 'id_rundown__jam_mulai',
+                )
             else:
                 kelompok_pj = KelompokDAD.objects.filter(
                     id_periode=periode, id_pj=request.user,
@@ -813,9 +815,12 @@ class PanitiaAbsensiListView(PanitiaRequiredMixin, TahapRequiredMixin, View):
                 if kelompok_pj:
                     qr_list = QRAbsensi.objects.filter(
                         id_kelompok=kelompok_pj,
-                    ).select_related('id_rundown', 'id_kelompok')
+                    ).select_related('id_rundown', 'id_kelompok').order_by(
+                        'id_rundown__tanggal', 'id_rundown__urutan', 'id_rundown__jam_mulai',
+                    )
 
-        # Group by hari_ke
+        # Group by hari_ke, urut kronologis mengikuti queryset (tanggal),
+        # bukan sorted() alfabetis yang menempatkan "Kedatangan" terakhir.
         hari_groups = {}
         for qr in qr_list:
             hari = qr.id_rundown.hari_ke
@@ -824,7 +829,7 @@ class PanitiaAbsensiListView(PanitiaRequiredMixin, TahapRequiredMixin, View):
         return render(request, self.template_name, {
             'periode': periode,
             'kelompok_pj': kelompok_pj,
-            'hari_groups': dict(sorted(hari_groups.items())),
+            'hari_groups': hari_groups,
         })
 
 
@@ -1151,7 +1156,7 @@ class AbsensiRiwayatView(CalonKaderRequiredMixin, TahapRequiredMixin, View):
         if pendaftaran:
             absensi_list = AbsensiDAD.objects.filter(
                 id_pendaftaran=pendaftaran,
-            ).select_related('id_qr__id_rundown').order_by('id_qr__id_rundown__hari_ke', 'id_qr__id_rundown__urutan')
+            ).select_related('id_qr__id_rundown').order_by('id_qr__id_rundown__tanggal', 'id_qr__id_rundown__urutan')
 
             if pendaftaran.id_periode:
                 total_sesi = RundownDAD.objects.filter(

@@ -309,7 +309,10 @@ class RundownDAD(models.Model):
         db_table = 'rundown_dad'
         verbose_name = 'Rundown DAD'
         verbose_name_plural = 'Rundown DAD'
-        ordering = ['hari_ke', 'urutan', 'jam_mulai']
+        # Kronologis: tanggal dulu (Kedatangan tampil sebelum Hari 1-3).
+        # Jangan urutkan by hari_ke — CharField alfabetis menempatkan
+        # "Kedatangan" setelah "Hari 3".
+        ordering = ['tanggal', 'urutan', 'jam_mulai']
 
     def __str__(self) -> str:
         return f"Hari {self.hari_ke} — {self.materi} ({self.jam_mulai.strftime('%H:%M')})"
