@@ -3,15 +3,23 @@
 Sumber data: templates/laporan_template/RUNDOWN_DAD_FTIK_FIX.docx
 (Rundown Darul Arqom Dasar PK IMM FTIK UMKO, 20-23 November 2025).
 
-Idempoten: sesi di-update_or_create berdasarkan (periode, tanggal,
-jam_mulai, materi), lalu QR absensi di-generate untuk semua sesi
-is_absensi x kelompok A/B/C (skip yang sudah ada) — sama seperti
-tombol "Generate QR" di dashboard admin.
-"""
-from datetime import date, time
+Idempoten: sesi di-update_or_create berdasarkan (periode, hari_ke,
+urutan) — kunci yang stabil walau tanggal digeser — lalu QR absensi
+di-generate untuk semua sesi is_absensi x kelompok A/B/C (skip yang
+sudah ada), sama seperti tombol "Generate QR" di dashboard admin.
 
-from django.core.management.base import BaseCommand
+Opsi --tanggal-mulai YYYY-MM-DD menggeser seluruh jadwal sehingga
+Hari 1 jatuh pada tanggal tersebut (Kedatangan = H-1, Hari 2 = H+1,
+Hari 3 = H+2), sekaligus menyesuaikan jendela Tahap 3 Kegiatan DAD
+pada Periode (tgl_mulai_kegiatan/tgl_selesai_kegiatan) karena menu
+absensi QR, penilaian, dan jadwal input nilai harian dikunci oleh
+tanggal periode — bukan oleh tanggal rundown.
+"""
+from datetime import date, datetime, time, timedelta
+
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.pendaftaran.models import PeriodeDAD, RundownDAD
 from apps.pendaftaran.services import AbsensiService
@@ -152,8 +160,29 @@ class Command(BaseCommand):
             action='store_true',
             help='Tampilkan apa yang akan dibuat tanpa menyimpan ke database.',
         )
+        parser.add_argument(
+            '--tanggal-mulai',
+            type=str,
+            help=(
+                'Geser jadwal: tanggal Hari 1 (format YYYY-MM-DD). '
+                'Kedatangan = H-1, Hari 2 = H+1, Hari 3 = H+2. '
+                'Jendela Tahap 3 Kegiatan DAD pada Periode ikut disesuaikan.'
+            ),
+        )
 
     def handle(self, *args, **options):
+        delta = timedelta(0)
+        tanggal_mulai = None
+        if options['tanggal_mulai']:
+            try:
+                tanggal_mulai = date.fromisoformat(options['tanggal_mulai'])
+            except ValueError:
+                raise CommandError(
+                    f"Format --tanggal-mulai tidak valid: '{options['tanggal_mulai']}'. "
+                    'Gunakan YYYY-MM-DD, contoh: 2026-06-19.'
+                )
+            delta = tanggal_mulai - TGL_HARI1
+
         if options['periode']:
             periode = PeriodeDAD.objects.filter(pk=options['periode']).first()
             if not periode:
@@ -167,13 +196,18 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Target periode: [{periode.pk}] {periode.nama_periode}')
         self.stdout.write(f'Jumlah sesi di dokumen: {len(RUNDOWN_DATA)}')
+        if tanggal_mulai:
+            self.stdout.write(
+                f'Geser jadwal: Hari 1 = {tanggal_mulai} '
+                f'(delta {delta.days:+d} hari dari dokumen asli)'
+            )
 
         if options['dry_run']:
             for row in RUNDOWN_DATA:
-                hari, tgl, mulai, selesai, materi = row[0], row[1], row[2], row[3], row[4]
+                hari, tgl, mulai, selesai, materi = row[0], row[1] + delta, row[2], row[3], row[4]
                 qr = 'QR' if row[11] else '--'
                 self.stdout.write(
-                    f'  [{qr}] {hari:<10} {tgl} {mulai:%H:%M}-{selesai:%H:%M}  {materi}'
+                    f'  [{qr}] {hari:<10} {tgl:%A, %d-%m-%Y} {mulai:%H:%M}-{selesai:%H:%M}  {materi}'
                 )
             self.stdout.write(self.style.WARNING('Dry-run: tidak ada yang disimpan.'))
             return
@@ -185,16 +219,16 @@ class Command(BaseCommand):
                  pa, pb, pc, ja, jb, jc, absen, urutan) = row
                 _, is_new = RundownDAD.objects.update_or_create(
                     id_periode=periode,
-                    tanggal=tgl,
-                    jam_mulai=mulai,
-                    materi=materi,
+                    hari_ke=hari,
+                    urutan=urutan,
                     defaults={
-                        'hari_ke': hari,
+                        'tanggal': tgl + delta,
+                        'jam_mulai': mulai,
                         'jam_selesai': selesai,
+                        'materi': materi,
                         'pemateri_a': pa, 'pemateri_b': pb, 'pemateri_c': pc,
                         'pj_a': ja, 'pj_b': jb, 'pj_c': jc,
                         'is_absensi': absen,
-                        'urutan': urutan,
                     },
                 )
                 if is_new:
@@ -203,6 +237,27 @@ class Command(BaseCommand):
                     updated += 1
 
             qr_created = AbsensiService.generate_all_qr(periode)
+
+            if tanggal_mulai:
+                # Jendela Tahap 3 mengunci menu absensi QR/penilaian dan jadwal
+                # input nilai harian (Hari N = tgl_mulai_kegiatan + N-1), jadi
+                # harus ikut digeser agar sistem bisa dipakai pada tanggal baru.
+                tz = timezone.get_current_timezone()
+                mulai_baru = timezone.make_aware(
+                    datetime.combine(tanggal_mulai, time(0, 0)), tz,
+                )
+                selesai_baru = timezone.make_aware(
+                    datetime.combine(tanggal_mulai + timedelta(days=2), time(23, 59)), tz,
+                )
+                self.stdout.write(
+                    f'Periode tgl_mulai_kegiatan : {periode.tgl_mulai_kegiatan} -> {mulai_baru}'
+                )
+                self.stdout.write(
+                    f'Periode tgl_selesai_kegiatan: {periode.tgl_selesai_kegiatan} -> {selesai_baru}'
+                )
+                periode.tgl_mulai_kegiatan = mulai_baru
+                periode.tgl_selesai_kegiatan = selesai_baru
+                periode.save(update_fields=['tgl_mulai_kegiatan', 'tgl_selesai_kegiatan'])
 
         total_qr_sesi = sum(1 for r in RUNDOWN_DATA if r[11])
         self.stdout.write(self.style.SUCCESS(
