@@ -754,6 +754,22 @@ class RundownUpdateView(AdminRequiredMixin, View):
                         created += 1
                 if created:
                     qr_msg = f' {created} QR absensi baru dibuat.'
+            elif not rundown.is_absensi:
+                # Absensi dimatikan: bersihkan QR sesi ini agar tidak tetap muncul
+                # di dashboard panitia. Lindungi QR yang sudah punya data scan
+                # (hapus QR akan cascade-delete catatan kehadiran).
+                qr_sesi = QRAbsensi.objects.filter(id_rundown=rundown)
+                qr_kosong = qr_sesi.filter(absensi_set__isnull=True)
+                deleted = qr_kosong.count()
+                qr_kosong.delete()
+                tersisa = qr_sesi.count()
+                if deleted:
+                    qr_msg = f' {deleted} QR absensi dihapus.'
+                if tersisa:
+                    qr_msg += (
+                        f' {tersisa} QR tidak dihapus karena sudah memiliki data scan'
+                        ' — hapus manual bila perlu.'
+                    )
 
             messages.success(request, f'Sesi "{rundown.materi}" berhasil diperbarui.{qr_msg}')
             return redirect('rundown_admin:rundown_list')
@@ -807,6 +823,7 @@ class PanitiaAbsensiListView(PanitiaRequiredMixin, TahapRequiredMixin, View):
             if request.user.role == UserRole.ADMIN:
                 qr_list = QRAbsensi.objects.filter(
                     id_rundown__id_periode=periode,
+                    id_rundown__is_absensi=True,
                 ).select_related('id_rundown', 'id_kelompok').order_by(
                     'id_rundown__tanggal', 'id_rundown__urutan', 'id_rundown__jam_mulai',
                 )
@@ -817,6 +834,7 @@ class PanitiaAbsensiListView(PanitiaRequiredMixin, TahapRequiredMixin, View):
                 if kelompok_pj:
                     qr_list = QRAbsensi.objects.filter(
                         id_kelompok=kelompok_pj,
+                        id_rundown__is_absensi=True,
                     ).select_related('id_rundown', 'id_kelompok').order_by(
                         'id_rundown__tanggal', 'id_rundown__urutan', 'id_rundown__jam_mulai',
                     )
