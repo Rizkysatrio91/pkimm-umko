@@ -630,12 +630,16 @@ class LaporanService:
         rows = []
         for ab in absensi_qs:
             rundown = ab.id_qr.id_rundown
+            waktu_str = (
+                ab.waktu_scan.strftime('%d/%m/%Y %H:%M')
+                if ab.waktu_scan else f'{ab.get_status_display()} (tidak di-scan)'
+            )
             rows.append([
                 f"Hari {rundown.hari_ke}",
                 rundown.materi,
                 f"{rundown.jam_mulai.strftime('%H:%M')}–{rundown.jam_selesai.strftime('%H:%M')}",
                 f"Kelas {ab.id_qr.id_kelompok.nama_kelompok}",
-                ab.waktu_scan.strftime('%d/%m/%Y %H:%M'),
+                waktu_str,
             ])
         return rows
 
