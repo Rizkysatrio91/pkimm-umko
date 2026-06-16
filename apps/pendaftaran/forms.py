@@ -163,9 +163,14 @@ class RundownDADForm(forms.ModelForm):
             'placeholder': 'Kedatangan / Hari 1 / Hari 2 / Hari 3',
             'maxlength': 30,
         })
-        self.fields['tanggal'].widget = forms.DateInput(attrs={'class': css, 'type': 'date'})
-        self.fields['jam_mulai'].widget = forms.TimeInput(attrs={'class': css, 'type': 'time'})
-        self.fields['jam_selesai'].widget = forms.TimeInput(attrs={'class': css, 'type': 'time'})
+        # HTML5 date/time input hanya menampilkan value jika formatnya YYYY-MM-DD / HH:MM.
+        # Tanpa format eksplisit, Django merender format lokal sehingga field tampil kosong saat edit.
+        self.fields['tanggal'].widget = forms.DateInput(
+            attrs={'class': css, 'type': 'date'}, format='%Y-%m-%d')
+        self.fields['jam_mulai'].widget = forms.TimeInput(
+            attrs={'class': css, 'type': 'time'}, format='%H:%M')
+        self.fields['jam_selesai'].widget = forms.TimeInput(
+            attrs={'class': css, 'type': 'time'}, format='%H:%M')
         self.fields['materi'].widget = forms.TextInput(attrs={'class': css, 'placeholder': 'Nama materi / kegiatan'})
         self.fields['urutan'].widget = forms.NumberInput(attrs={'class': css, 'min': 0})
         self.fields['is_absensi'].widget = forms.CheckboxInput(attrs={
