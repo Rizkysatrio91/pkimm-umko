@@ -93,7 +93,7 @@ class KaderAdminForm(forms.ModelForm):
             'nama_ayah': forms.TextInput(attrs={'placeholder': 'Nama Ayah'}),
             'nama_ibu': forms.TextInput(attrs={'placeholder': 'Nama Ibu'}),
             'no_hp_ortu': forms.TextInput(attrs={'placeholder': 'No. HP Orang Tua'}),
-            'jabatan_struktural': forms.Select(choices=[('', '-- Pilih Jabatan --')] + list(JabatanKader.choices)),
+            'jabatan_struktural': forms.Select(choices=[('', '-- Pilih Jabatan --')] + [(k, v) for k, v in JabatanKader.choices if k != 'calon']),
             'periode_jabatan': forms.TextInput(attrs={'placeholder': 'Contoh: 2024-2025'}),
         }
 
