@@ -249,15 +249,30 @@ class RetryVerifikasiView(CalonKaderRequiredMixin, View):
 
 
 class CekKelulusanView(CalonKaderRequiredMixin, View):
-    """Calon kader: cek status kelulusan."""
+    """Calon kader: cek status kelulusan.
+
+    Hasil kelulusan hanya visible setelah tgl_pengumuman_kelulusan tiba.
+    Sebelumnya, tampilkan "Menunggu Keputusan" meski status sudah ditentukan.
+    """
 
     template_name = 'pendaftaran/kelulusan.html'
 
     def get(self, request):
+        from django.utils import timezone
+
         biodata = getattr(request.user, 'biodata', None)
         pendaftaran = None
         if biodata:
             pendaftaran = PendaftaranDAD.objects.filter(id_biodata=biodata).first()
+
+        # Jika status kelulusan sudah ditentukan (LULUS/TIDAK_LULUS),
+        # tetapi pengumuman belum waktunya, tampilkan "Menunggu Keputusan".
+        if pendaftaran and pendaftaran.status_kelulusan != StatusKelulusan.BELUM:
+            periode = pendaftaran.id_periode
+            if periode and periode.tgl_pengumuman_kelulusan:
+                if timezone.now() < periode.tgl_pengumuman_kelulusan:
+                    # Belum saatnya pengumuman: sembunyikan hasil dengan set status BELUM
+                    pendaftaran.status_kelulusan = StatusKelulusan.BELUM
 
         return render(request, self.template_name, {
             'pendaftaran': pendaftaran,
