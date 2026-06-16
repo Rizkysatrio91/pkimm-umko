@@ -59,7 +59,7 @@ class LaporanService:
     @classmethod
     def _fill_common(cls, doc: Document, judul: str, jenis: str, periode: str, user):
         from apps.kader.models import BiodataKader
-        tanggal = timezone.now().strftime('%d %B %Y')
+        tanggal = timezone.now().strftime('%d/%m/%Y')
         cls._replace(doc, '{{JUDUL_LAPORAN}}',    judul)
         cls._replace(doc, '{{JENIS_LAPORAN}}',    jenis)
         cls._replace(doc, '{{PERIODE}}',          periode)
@@ -225,7 +225,7 @@ class LaporanService:
         ws['A2'].font = Font(name='Times New Roman', size=11, color='000000')
         ws['A2'].alignment = Alignment(horizontal='center')
         ws.merge_cells(f'A3:{last}3')
-        ws['A3'] = f'Dicetak: {timezone.now().strftime("%d %B %Y")}'
+        ws['A3'] = f'Dicetak: {timezone.now().strftime("%d/%m/%Y")}'
         ws['A3'].font = Font(name='Times New Roman', size=9, color='444444')
 
     @classmethod
@@ -536,7 +536,7 @@ class LaporanService:
         jk = 'Laki-laki' if bio.jenis_kelamin == 'L' else ('Perempuan' if bio.jenis_kelamin == 'P' else '-')
         ttl = ''
         if bio.tempat_lahir or bio.tgl_lahir:
-            ttl = f"{bio.tempat_lahir or '-'}, {bio.tgl_lahir.strftime('%d %B %Y') if bio.tgl_lahir else '-'}"
+            ttl = f"{bio.tempat_lahir or '-'}, {bio.tgl_lahir.strftime('%d/%m/%Y') if bio.tgl_lahir else '-'}"
         return [
             ('Nama Lengkap', bio.nama_lengkap.title()),
             ('NPM', bio.npm),
@@ -565,9 +565,9 @@ class LaporanService:
         return [
             ('No. Registrasi', pendaftaran.no_registrasi),
             ('Periode DAD', pendaftaran.id_periode.nama_periode if pendaftaran.id_periode else '-'),
-            ('Tgl Daftar', pendaftaran.tgl_daftar.strftime('%d %B %Y %H:%M') if pendaftaran.tgl_daftar else '-'),
+            ('Tgl Daftar', pendaftaran.tgl_daftar.strftime('%d/%m/%Y %H:%M') if pendaftaran.tgl_daftar else '-'),
             ('Status Verifikasi', pendaftaran.get_status_verifikasi_display()),
-            ('Tgl Verifikasi', pendaftaran.tgl_verifikasi.strftime('%d %B %Y %H:%M') if pendaftaran.tgl_verifikasi else '-'),
+            ('Tgl Verifikasi', pendaftaran.tgl_verifikasi.strftime('%d/%m/%Y %H:%M') if pendaftaran.tgl_verifikasi else '-'),
             ('Identik (SSO ↔ Biodata)', 'Ya' if pendaftaran.is_identic else 'Tidak'),
             ('Nama SSO', pendaftaran.api_nama_sso or '-'),
             ('Status Mahasiswa (SSO)', pendaftaran.api_status_mahasiswa or '-'),
@@ -600,7 +600,7 @@ class LaporanService:
             ('Rata-rata Akhir', f"{interview.rata_rata}"),
             ('Status Interview', interview.get_status_interview_display() or '-'),
             ('Catatan', interview.catatan or '-'),
-            ('Tgl Penilaian', interview.tgl_penilaian.strftime('%d %B %Y %H:%M') if interview.tgl_penilaian else '-'),
+            ('Tgl Penilaian', interview.tgl_penilaian.strftime('%d/%m/%Y %H:%M') if interview.tgl_penilaian else '-'),
         ]
 
     @staticmethod
@@ -635,7 +635,7 @@ class LaporanService:
                 rundown.materi,
                 f"{rundown.jam_mulai.strftime('%H:%M')}–{rundown.jam_selesai.strftime('%H:%M')}",
                 f"Kelas {ab.id_qr.id_kelompok.nama_kelompok}",
-                ab.waktu_scan.strftime('%d %B %Y %H:%M'),
+                ab.waktu_scan.strftime('%d/%m/%Y %H:%M'),
             ])
         return rows
 
@@ -643,12 +643,17 @@ class LaporanService:
     def _kelulusan_rows(rekap):
         if not rekap:
             return []
+        # Gunakan format numeric %d/%m/%Y untuk menghindari locale-dependency (VPS mungkin locale C)
+        updated_str = (
+            rekap.updated_at.strftime('%d/%m/%Y %H:%M')
+            if rekap.updated_at else '-'
+        )
         return [
             ('Total Skor Aktivitas (3 Hari)', f"{rekap.total_skor_aktivitas}"),
             ('Nilai Interview', f"{rekap.nilai_interview}"),
             ('Total Akhir', f"{rekap.total_akhir}"),
             ('Peringkat', str(rekap.peringkat) if rekap.peringkat else '-'),
-            ('Terakhir Diperbarui', rekap.updated_at.strftime('%d %B %Y %H:%M') if rekap.updated_at else '-'),
+            ('Terakhir Diperbarui', updated_str),
         ]
 
     # ─── Builder DOCX untuk detail ───────────────────────────────────
@@ -778,7 +783,8 @@ class LaporanService:
         - Sisipkan sections detail sebelum paragraf 'CATATAN'
         """
         doc = Document(cls.TEMPLATE_PATH)
-        tanggal = timezone.now().strftime('%d %B %Y')
+        # Format numeric %d/%m/%Y untuk menghindari locale-dependency (VPS mungkin locale C)
+        tanggal = timezone.now().strftime('%d/%m/%Y')
 
         cls._replace(doc, '{{JUDUL_LAPORAN}}',    title)
         cls._replace(doc, '{{JENIS_LAPORAN}}',    jenis)
@@ -859,7 +865,7 @@ class LaporanService:
         ws['A2'].font = Font(name='Times New Roman', size=11, color='444444')
         ws['A2'].alignment = Alignment(horizontal='center')
         ws.merge_cells('A3:D3')
-        ws['A3'] = f"Dicetak: {timezone.now().strftime('%d %B %Y %H:%M')} oleh {user.username}"
+        ws['A3'] = f"Dicetak: {timezone.now().strftime('%d/%m/%Y %H:%M')} oleh {user.username}"
         ws['A3'].font = Font(name='Times New Roman', size=9, color='666666')
         ws['A3'].alignment = Alignment(horizontal='center')
 
