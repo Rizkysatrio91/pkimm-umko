@@ -76,7 +76,7 @@
                         <option value="P" {% if field.value == 'P' %}selected{% endif %}>Perempuan</option>
                     </select>
                     {% elif field.name == 'tgl_lahir' %}
-                    <input type="date" name="{{ field.html_name }}" id="{{ field.id_for_label }}" value="{{ field.value|default:'' }}"
+                    <input type="date" name="{{ field.html_name }}" id="{{ field.id_for_label }}" value="{% if field.value %}{{ field.value|date:'Y-m-d'|default:field.value }}{% endif %}"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-maroon focus:border-maroon transition text-sm {% if field.errors %}border-red-400 bg-red-50{% endif %}">
                     {% elif field.name == 'jabatan_struktural' %}
                     <select name="{{ field.html_name }}" id="{{ field.id_for_label }}"

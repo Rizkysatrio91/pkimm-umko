@@ -86,7 +86,7 @@ class KaderAdminForm(forms.ModelForm):
             'fakultas': forms.Select(),
             'angkatan': forms.TextInput(attrs={'placeholder': 'Angkatan', 'maxlength': '4'}),
             'tempat_lahir': forms.TextInput(attrs={'placeholder': 'Tempat Lahir'}),
-            'tgl_lahir': forms.DateInput(attrs={'type': 'date'}),
+            'tgl_lahir': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'jenis_kelamin': forms.Select(choices=[('', '-- Pilih --')] + list(JenisKelamin.choices)),
             'alamat_domisili': forms.Textarea(attrs={'placeholder': 'Alamat Domisili', 'rows': 3}),
             'no_hp': forms.TextInput(attrs={'placeholder': 'No. HP'}),
@@ -101,6 +101,9 @@ class KaderAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['fakultas'].widget = forms.Select(choices=_fakultas_choices())
         self.fields['program_studi'].widget = forms.Select(choices=_prodi_choices())
+        # Input HTML5 type=date selalu mengirim YYYY-MM-DD; paksa format ini
+        # agar parsing tidak bergantung locale server (hindari error di VPS).
+        self.fields['tgl_lahir'].input_formats = ['%Y-%m-%d']
 
     def clean_foto_profil(self):
         foto = self.cleaned_data.get('foto_profil')
