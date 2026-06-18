@@ -5,6 +5,7 @@ berisiko (SVG dengan script, HTML polyglot, dsb.). Dipakai oleh form
 di apps.accounts, apps.berita, apps.kader.
 """
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
 
 # Ukuran maksimal upload gambar — 5 MB cukup untuk foto HP modern
 # yang sudah di-kompres; lebih dari itu biasanya tanda salah upload.
@@ -35,8 +36,14 @@ def validate_image_upload(uploaded_file):
     if not uploaded_file:
         return
 
-    # UploadedFile punya atribut size; FieldFile yang sudah tersimpan di DB
-    # tidak selalu punya — skip kalau bukan file baru yang di-upload.
+    # Hanya validasi file yang BARU di-upload user. Saat edit tanpa
+    # mengganti gambar, yang masuk adalah FieldFile lama yang sudah
+    # tersimpan di DB — mengakses .size-nya memicu storage lookup
+    # (os.path.getsize) yang melempar FileNotFoundError bila file fisiknya
+    # hilang (mis. media tidak ikut ter-deploy), menyebabkan 500.
+    if not isinstance(uploaded_file, UploadedFile):
+        return
+
     size = getattr(uploaded_file, 'size', None)
     if size is not None and size > MAX_IMAGE_SIZE_BYTES:
         raise ValidationError(
