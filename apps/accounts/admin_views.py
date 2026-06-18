@@ -125,14 +125,10 @@ class UserDeleteView(AdminRequiredMixin, DeleteView):
         if user.pk == self.request.user.pk:
             messages.error(self.request, 'Anda tidak dapat menghapus akun Anda sendiri.')
             return redirect(self.get_success_url())
-        if (
-            user.role == UserRole.ADMIN and user.is_active
-            and not _other_active_admins_exist(user.pk)
-        ):
+        if user.role == UserRole.ADMIN:
             messages.error(
                 self.request,
-                'Tidak dapat menghapus admin aktif terakhir. '
-                'Tetapkan admin aktif lain terlebih dahulu.',
+                'Akun admin tidak dapat dihapus. Akun admin hanya bisa diedit.',
             )
             return redirect(self.get_success_url())
 
