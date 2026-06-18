@@ -104,6 +104,15 @@ class KaderAdminForm(forms.ModelForm):
         # Input HTML5 type=date selalu mengirim YYYY-MM-DD; paksa format ini
         # agar parsing tidak bergantung locale server (hindari error di VPS).
         self.fields['tgl_lahir'].input_formats = ['%Y-%m-%d']
+        # Buang 'calon' dari choices VALIDASI field (bukan cuma tampilan
+        # widget). Tanpa ini, nilai 'calon' yang terkirim (mis. halaman
+        # ter-cache) tetap lolos → record tersimpan status calon yang
+        # tersembunyi dari daftar kader & memblokir NPM (unique). Status
+        # 'calon' eksklusif untuk calon yang mendaftar sendiri.
+        self.fields['jabatan_struktural'].choices = (
+            [('', '-- Pilih Jabatan --')]
+            + [(k, v) for k, v in JabatanKader.choices if k != 'calon']
+        )
 
     def clean_foto_profil(self):
         foto = self.cleaned_data.get('foto_profil')
