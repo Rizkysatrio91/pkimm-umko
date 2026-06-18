@@ -1,13 +1,26 @@
 """View admin untuk manajemen user."""
 from django.contrib import messages
 from django.db.models import Q
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from apps.accounts.admin_forms import AdminUserCreateForm, AdminUserUpdateForm
 from apps.accounts.models import User
+from core.constants import UserRole
 from core.mixins import AdminRequiredMixin
+
+
+def _other_active_admins_exist(exclude_pk) -> bool:
+    """True jika masih ada admin aktif LAIN selain user dengan pk ini.
+
+    Dipakai untuk mencegah lockout: jangan sampai admin terakhir dihapus,
+    diturunkan role-nya, atau dinonaktifkan sehingga tak ada lagi yang
+    bisa masuk sebagai admin.
+    """
+    return User.objects.filter(
+        role=UserRole.ADMIN, is_active=True,
+    ).exclude(pk=exclude_pk).exists()
 
 
 class UserListView(AdminRequiredMixin, ListView):
@@ -68,9 +81,22 @@ class UserUpdateView(AdminRequiredMixin, UpdateView):
     pk_url_kwarg = 'pk'
 
     def get_object(self, queryset=None):
-        return User.objects.get(id_user=self.kwargs['pk'])
+        return get_object_or_404(User, id_user=self.kwargs['pk'])
 
     def form_valid(self, form):
+        # Cegah lockout: dilarang menurunkan role / menonaktifkan admin
+        # aktif terakhir (termasuk diri sendiri bila satu-satunya admin).
+        removing_admin = (
+            form.cleaned_data.get('role') != UserRole.ADMIN
+            or not form.cleaned_data.get('is_active')
+        )
+        if removing_admin and not _other_active_admins_exist(form.instance.pk):
+            messages.error(
+                self.request,
+                'Tidak dapat menurunkan atau menonaktifkan admin aktif terakhir. '
+                'Tetapkan admin aktif lain terlebih dahulu.',
+            )
+            return self.form_invalid(form)
         messages.success(self.request, f'User "{form.instance.username}" berhasil diperbarui.')
         return super().form_valid(form)
 
@@ -89,9 +115,27 @@ class UserDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('user_admin:user_list')
 
     def get_object(self, queryset=None):
-        return User.objects.get(id_user=self.kwargs['pk'])
+        return get_object_or_404(User, id_user=self.kwargs['pk'])
 
     def form_valid(self, form):
+        user = self.get_object()
+
+        # Cegah lockout: tidak boleh menghapus akun sendiri, dan tidak boleh
+        # menghapus admin aktif terakhir. Dicek SEBELUM import/cascade delete.
+        if user.pk == self.request.user.pk:
+            messages.error(self.request, 'Anda tidak dapat menghapus akun Anda sendiri.')
+            return redirect(self.get_success_url())
+        if (
+            user.role == UserRole.ADMIN and user.is_active
+            and not _other_active_admins_exist(user.pk)
+        ):
+            messages.error(
+                self.request,
+                'Tidak dapat menghapus admin aktif terakhir. '
+                'Tetapkan admin aktif lain terlebih dahulu.',
+            )
+            return redirect(self.get_success_url())
+
         from apps.berita.models import Berita
         from apps.chatbot.models import DatasetChatbot, RiwayatChat
         from apps.kader.models import BiodataKader
@@ -99,7 +143,6 @@ class UserDeleteView(AdminRequiredMixin, DeleteView):
         from apps.pendaftaran.models import PendaftaranDAD
         from apps.penilaian.models import NilaiAktivitas, NilaiInterview, RekapLeaderboard
 
-        user = self.get_object()
         username = user.username
 
         # Hapus data kaderisasi (dari tabel paling dalam ke tabel terluar)
