@@ -18,6 +18,20 @@
             </div>
             {% endif %}
 
+            <!-- Periode DAD: tentukan periode/tahun tujuan sesi ini -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Periode DAD</label>
+                {{ form.id_periode }}
+                {% for error in form.id_periode.errors %}
+                <p class="text-red-600 text-xs mt-1">{{ error }}</p>
+                {% endfor %}
+                {% if is_edit %}
+                <p class="text-xs text-gray-400 mt-1">Periode dikunci saat edit. Untuk memindah sesi ke periode lain, buat ulang di periode tujuan.</p>
+                {% else %}
+                <p class="text-xs text-gray-400 mt-1">Pilih periode/tahun DAD yang akan diisi sesi ini.</p>
+                {% endif %}
+            </div>
+
             <!-- Baris 1: Hari, Tanggal, Jam -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
@@ -99,7 +113,7 @@
                 <button type="submit" class="px-5 py-2.5 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
                     {% if is_edit %}Simpan Perubahan{% else %}Tambah Sesi{% endif %}
                 </button>
-                <a href="{% url 'rundown_admin:rundown_list' %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                <a href="{% url 'rundown_admin:rundown_list' %}{% if periode %}?periode={{ periode.pk }}{% endif %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
                     Batal
                 </a>
             </div>

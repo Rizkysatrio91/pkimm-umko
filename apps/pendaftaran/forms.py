@@ -149,6 +149,7 @@ class RundownDADForm(forms.ModelForm):
     class Meta:
         model = RundownDAD
         fields = [
+            'id_periode',
             'hari_ke', 'tanggal', 'jam_mulai', 'jam_selesai', 'materi',
             'pemateri_a', 'pemateri_b', 'pemateri_c',
             'pj_a', 'pj_b', 'pj_c',
@@ -158,6 +159,19 @@ class RundownDADForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         css = INPUT_CSS
+        # Periode DAD: pilih periode/tahun tujuan sesi (mis. "Pendaftaran DAD 2026").
+        self.fields['id_periode'].label = 'Periode DAD'
+        self.fields['id_periode'].empty_label = '— Pilih periode —'
+        self.fields['id_periode'].queryset = PeriodeDAD.objects.all()
+        self.fields['id_periode'].widget.attrs['class'] = css
+        self.fields['id_periode'].label_from_instance = (
+            lambda obj: f"{obj.nama_periode}{' (Aktif)' if obj.is_active else ''}"
+        )
+        # Saat EDIT, periode dikunci: mencegah sesi tak sengaja berpindah periode
+        # yang membuat QR/kelompok lintas-periode tidak konsisten. disabled=True
+        # juga membuat Django mengabaikan input dan mempertahankan nilai instance.
+        if self.instance and self.instance.pk:
+            self.fields['id_periode'].disabled = True
         self.fields['hari_ke'].widget = forms.TextInput(attrs={
             'class': css,
             'placeholder': 'Kedatangan / Hari 1 / Hari 2 / Hari 3',

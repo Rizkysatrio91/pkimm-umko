@@ -162,6 +162,45 @@ class KelompokService:
         pendaftaran.save(update_fields=['id_kelompok'])
 
 
+class RundownService:
+    """Service untuk pengelolaan rundown DAD."""
+
+    # Field yang disalin saat menduplikasi rundown antar periode.
+    # Sengaja TIDAK menyertakan id_rundown (PK auto) dan id_periode (di-set ulang
+    # ke periode tujuan). QRAbsensi juga tidak disalin — token QR bersifat
+    # per-periode dan dibuat ulang saat sesi diaktifkan/di-generate.
+    COPY_FIELDS = (
+        'hari_ke', 'tanggal', 'jam_mulai', 'jam_selesai', 'materi',
+        'pemateri_a', 'pemateri_b', 'pemateri_c',
+        'pj_a', 'pj_b', 'pj_c', 'is_absensi', 'urutan',
+    )
+
+    @staticmethod
+    @transaction.atomic
+    def copy_rundown(sumber: PeriodeDAD, tujuan: PeriodeDAD) -> int:
+        """Salin seluruh sesi rundown dari periode `sumber` ke `tujuan`.
+
+        Hanya berjalan bila periode tujuan BELUM punya sesi sama sekali, untuk
+        mencegah duplikasi tidak sengaja. Tanggal disalin apa adanya (struktur
+        hari tetap terjaga); admin tinggal menyesuaikan tanggal tiap hari lewat
+        editor "Ubah tanggal" pada halaman rundown.
+
+        Returns jumlah sesi yang berhasil disalin (0 bila tujuan sudah berisi).
+        """
+        if RundownDAD.objects.filter(id_periode=tujuan).exists():
+            return 0
+        sumber_sesi = RundownDAD.objects.filter(id_periode=sumber)
+        baru = [
+            RundownDAD(
+                id_periode=tujuan,
+                **{field: getattr(sesi, field) for field in RundownService.COPY_FIELDS},
+            )
+            for sesi in sumber_sesi
+        ]
+        RundownDAD.objects.bulk_create(baru)
+        return len(baru)
+
+
 class AbsensiService:
     """Service untuk proses absensi QR code."""
 

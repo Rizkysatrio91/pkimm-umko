@@ -4,36 +4,77 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-maroon">Rundown DAD</h1>
-            <p class="text-sm text-gray-500 mt-1">
-                {% if periode %}{{ periode.nama_periode }} — {{ total_sesi }} sesi{% else %}Tidak ada periode aktif{% endif %}
-            </p>
+    <div class="flex flex-col gap-4 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-bold text-maroon">Rundown DAD</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if periode %}{{ periode.nama_periode }}{% if periode.is_active %} · Aktif{% endif %} — {{ total_sesi }} sesi{% else %}Belum ada periode{% endif %}
+                </p>
+            </div>
+            {% if periode %}
+            <div class="flex gap-2 flex-wrap">
+                <a href="{% url 'rundown_admin:rundown_create' %}?periode={{ periode.pk }}"
+                   class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
+                    + Tambah Sesi
+                </a>
+                <form method="post" action="{% url 'rundown_admin:generate_qr' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="periode" value="{{ periode.pk }}">
+                    <button type="submit" class="px-4 py-2 bg-gold text-white rounded-lg hover:bg-gold-light transition text-sm font-semibold">
+                        Generate QR Absensi
+                    </button>
+                </form>
+            </div>
+            {% endif %}
         </div>
-        {% if periode %}
-        <div class="mt-3 sm:mt-0 flex gap-2 flex-wrap">
-            <a href="{% url 'rundown_admin:rundown_create' %}"
-               class="px-4 py-2 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
-                + Tambah Sesi
-            </a>
-            <form method="post" action="{% url 'rundown_admin:generate_qr' %}">
-                {% csrf_token %}
-                <button type="submit" class="px-4 py-2 bg-gold text-white rounded-lg hover:bg-gold-light transition text-sm font-semibold">
-                    Generate QR Absensi
-                </button>
-            </form>
-        </div>
+
+        <!-- Pemilih periode: tiap periode DAD punya rundown sendiri -->
+        {% if periode_list %}
+        <form method="get" class="flex items-center gap-2 flex-wrap bg-white border border-gray-200 rounded-lg px-3 py-2 w-fit">
+            <label for="periode-select" class="text-sm font-medium text-gray-600">Periode DAD:</label>
+            <select id="periode-select" name="periode" onchange="this.form.submit()"
+                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-maroon focus:border-maroon">
+                {% for p in periode_list %}
+                <option value="{{ p.pk }}" {% if periode and p.pk == periode.pk %}selected{% endif %}>
+                    {{ p.nama_periode }}{% if p.is_active %} (Aktif){% endif %} — {{ p.jumlah_sesi }} sesi
+                </option>
+                {% endfor %}
+            </select>
+            <noscript>
+                <button type="submit" class="px-3 py-1.5 bg-maroon text-white rounded-lg text-sm font-semibold">Tampilkan</button>
+            </noscript>
+        </form>
         {% endif %}
     </div>
 
     {% if not periode %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-        <p class="text-yellow-700">Aktifkan periode DAD terlebih dahulu.</p>
+        <p class="text-yellow-700">Belum ada periode DAD. Buat periode terlebih dahulu di menu Periode DAD.</p>
     </div>
     {% elif not hari_groups %}
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-        <p class="text-gray-500">Belum ada sesi rundown. Klik "Tambah Sesi" untuk mulai.</p>
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center space-y-4">
+        <p class="text-gray-500">Belum ada sesi rundown untuk periode ini. Klik "Tambah Sesi" untuk mulai{% if sumber_list %}, atau salin dari periode lain{% endif %}.</p>
+
+        {% if sumber_list %}
+        <form method="post" action="{% url 'rundown_admin:rundown_copy' %}"
+              class="flex items-center justify-center gap-2 flex-wrap"
+              onsubmit="return confirm('Salin seluruh sesi rundown dari periode terpilih ke periode ini?')">
+            {% csrf_token %}
+            <input type="hidden" name="periode" value="{{ periode.pk }}">
+            <label for="sumber-select" class="text-sm font-medium text-gray-600">Salin dari:</label>
+            <select id="sumber-select" name="sumber" required
+                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-maroon focus:border-maroon">
+                {% for s in sumber_list %}
+                <option value="{{ s.pk }}">{{ s.nama_periode }} — {{ s.jumlah_sesi }} sesi</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="px-4 py-1.5 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-sm font-semibold">
+                Salin Rundown
+            </button>
+        </form>
+        <p class="text-xs text-gray-400">Tanggal ikut tersalin — sesuaikan lewat "Ubah tanggal" setelah disalin.</p>
+        {% endif %}
     </div>
     {% else %}
     {% for hari_ke, sesi_list in hari_groups.items %}
@@ -64,6 +105,7 @@
                   x-show="editing" style="display:none" class="flex items-center gap-2 flex-wrap"
                   onsubmit="return confirm('Ubah tanggal untuk SEMUA sesi pada hari ini menjadi tanggal yang dipilih?')">
                 {% csrf_token %}
+                <input type="hidden" name="periode" value="{{ periode.pk }}">
                 <input type="hidden" name="hari_ke" value="{{ hari_ke }}">
                 <input type="date" name="tanggal" required
                        value="{{ sesi_list.0.tanggal|date:'Y-m-d' }}"

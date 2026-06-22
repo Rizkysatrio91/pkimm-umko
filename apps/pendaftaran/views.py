@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_protect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from django.db.models import Avg
@@ -32,7 +32,7 @@ from apps.pendaftaran.models import (
     QRAbsensi,
     RundownDAD,
 )
-from apps.pendaftaran.services import AbsensiService, KelompokService
+from apps.pendaftaran.services import AbsensiService, KelompokService, RundownService
 from apps.penilaian.models import NilaiAktivitas, NilaiInterview
 from core.budget_limiter import BudgetLimiter
 from core.constants import StatusAbsensi, StatusKelulusan, StatusInterview, StatusVerifikasi, TipeNotifikasi, UserRole
@@ -505,6 +505,11 @@ class PeriodeListView(AdminRequiredMixin, ListView):
     template_name = 'pendaftaran/periode_list.html'
     context_object_name = 'periode_list'
 
+    def get_queryset(self):
+        # Anotasi jumlah sesi rundown agar tiap kartu periode menampilkan
+        # status rundown-nya (mempertegas relasi rundown ↔ periode).
+        return super().get_queryset().annotate(jumlah_sesi=Count('rundown_set'))
+
 
 class PeriodeCreateView(AdminRequiredMixin, CreateView):
     """Admin: buat periode pendaftaran DAD baru."""
@@ -684,25 +689,61 @@ class KelompokPindahAnggotaView(AdminRequiredMixin, View):
 # Admin: Manajemen Rundown DAD
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _resolve_rundown_periode(request):
+    """Periode yang sedang dikelola pada halaman rundown admin.
+
+    Prioritaskan parameter ``periode`` (GET atau POST) agar admin dapat
+    mengelola rundown periode mana pun — termasuk periode non-aktif. Bila
+    tidak ada parameter, fallback ke periode yang sedang aktif.
+    """
+    periode_id = request.GET.get('periode') or request.POST.get('periode')
+    if periode_id:
+        return PeriodeDAD.objects.filter(pk=periode_id).first()
+    return PeriodeDAD.get_active_period()
+
+
+def _redirect_rundown_list(periode):
+    """Redirect ke daftar rundown sambil mempertahankan periode terpilih."""
+    url = reverse('rundown_admin:rundown_list')
+    if periode:
+        url = f'{url}?periode={periode.pk}'
+    return redirect(url)
+
+
 class RundownListView(AdminRequiredMixin, View):
-    """Admin: lihat semua sesi rundown per hari."""
+    """Admin: lihat semua sesi rundown per hari, untuk periode terpilih."""
 
     template_name = 'pendaftaran/rundown_list.html'
 
     def get(self, request):
-        periode = PeriodeDAD.get_active_period()
+        # Semua periode untuk pemilih (dropdown) + jumlah sesi tiap periode.
+        periode_list = list(PeriodeDAD.objects.annotate(jumlah_sesi=Count('rundown_set')))
+
+        periode = _resolve_rundown_periode(request)
+        # Fallback: bila tak ada periode aktif & tanpa parameter, pilih periode
+        # terbaru agar admin tetap bisa melihat/mengelola rundown.
+        if periode is None and periode_list:
+            periode = periode_list[0]
+
         rundown_list = []
         hari_groups = {}
-
         if periode:
             rundown_list = RundownDAD.objects.filter(id_periode=periode)
             for r in rundown_list:
                 hari_groups.setdefault(r.hari_ke, []).append(r)
 
+        # Periode lain yang sudah punya rundown — kandidat sumber "Salin rundown".
+        sumber_list = [
+            p for p in periode_list
+            if periode and p.pk != periode.pk and p.jumlah_sesi > 0
+        ]
+
         # Tanpa sorted(): ikuti urutan queryset (kronologis by tanggal).
         # sorted() alfabetis menempatkan "Kedatangan" setelah "Hari 3".
         return render(request, self.template_name, {
             'periode': periode,
+            'periode_list': periode_list,
+            'sumber_list': sumber_list,
             'hari_groups': hari_groups,
             'total_sesi': len(rundown_list),
         })
@@ -714,19 +755,17 @@ class RundownCreateView(AdminRequiredMixin, View):
     template_name = 'pendaftaran/rundown_form.html'
 
     def get(self, request):
-        form = RundownDADForm()
-        return render(request, self.template_name, {'form': form, 'is_edit': False})
+        periode = _resolve_rundown_periode(request)
+        # Pra-pilih periode dari konteks (URL/aktif) sebagai default di dropdown.
+        form = RundownDADForm(initial={'id_periode': periode.pk if periode else None})
+        return render(request, self.template_name, {'form': form, 'is_edit': False, 'periode': periode})
 
     def post(self, request):
         form = RundownDADForm(request.POST)
         if form.is_valid():
             rundown = form.save(commit=False)
-            periode = PeriodeDAD.get_active_period()
-            if not periode:
-                messages.error(request, 'Tidak ada periode aktif.')
-                return redirect('rundown_admin:rundown_list')
-            rundown.id_periode = periode
             rundown.save()
+            periode = rundown.id_periode  # diambil dari pilihan "Periode DAD" di form
 
             # Auto-generate QR untuk sesi is_absensi (1 QR per kelompok A/B/C)
             qr_msg = ''
@@ -737,8 +776,10 @@ class RundownCreateView(AdminRequiredMixin, View):
                 qr_msg = ' QR absensi otomatis dibuat untuk 3 kelompok.'
 
             messages.success(request, f'Sesi "{rundown.materi}" berhasil ditambahkan.{qr_msg}')
-            return redirect('rundown_admin:rundown_list')
-        return render(request, self.template_name, {'form': form, 'is_edit': False})
+            return _redirect_rundown_list(periode)
+        # Form tidak valid — render ulang, pertahankan konteks periode untuk navigasi.
+        periode = _resolve_rundown_periode(request)
+        return render(request, self.template_name, {'form': form, 'is_edit': False, 'periode': periode})
 
 
 class RundownUpdateView(AdminRequiredMixin, View):
@@ -749,7 +790,9 @@ class RundownUpdateView(AdminRequiredMixin, View):
     def get(self, request, pk):
         rundown = get_object_or_404(RundownDAD, pk=pk)
         form = RundownDADForm(instance=rundown)
-        return render(request, self.template_name, {'form': form, 'is_edit': True, 'rundown': rundown})
+        return render(request, self.template_name, {
+            'form': form, 'is_edit': True, 'rundown': rundown, 'periode': rundown.id_periode,
+        })
 
     def post(self, request, pk):
         rundown = get_object_or_404(RundownDAD, pk=pk)
@@ -788,8 +831,10 @@ class RundownUpdateView(AdminRequiredMixin, View):
                     )
 
             messages.success(request, f'Sesi "{rundown.materi}" berhasil diperbarui.{qr_msg}')
-            return redirect('rundown_admin:rundown_list')
-        return render(request, self.template_name, {'form': form, 'is_edit': True, 'rundown': rundown})
+            return _redirect_rundown_list(rundown.id_periode)
+        return render(request, self.template_name, {
+            'form': form, 'is_edit': True, 'rundown': rundown, 'periode': rundown.id_periode,
+        })
 
 
 class RundownTanggalUpdateView(AdminRequiredMixin, View):
@@ -803,9 +848,9 @@ class RundownTanggalUpdateView(AdminRequiredMixin, View):
     """
 
     def post(self, request):
-        periode = PeriodeDAD.get_active_period()
+        periode = _resolve_rundown_periode(request)
         if not periode:
-            messages.error(request, 'Tidak ada periode aktif.')
+            messages.error(request, 'Periode tidak ditemukan.')
             return redirect('rundown_admin:rundown_list')
 
         hari_ke = (request.POST.get('hari_ke') or '').strip()
@@ -813,15 +858,15 @@ class RundownTanggalUpdateView(AdminRequiredMixin, View):
 
         if not hari_ke:
             messages.error(request, 'Hari tidak valid.')
-            return redirect('rundown_admin:rundown_list')
+            return _redirect_rundown_list(periode)
 
         try:
             tanggal_baru = date.fromisoformat(tanggal_str)
         except ValueError:
             messages.error(request, 'Format tanggal tidak valid.')
-            return redirect('rundown_admin:rundown_list')
+            return _redirect_rundown_list(periode)
 
-        # Bulk-update semua sesi pada hari ini dalam periode aktif.
+        # Bulk-update semua sesi pada hari ini dalam periode terpilih.
         updated = RundownDAD.objects.filter(
             id_periode=periode, hari_ke=hari_ke,
         ).update(tanggal=tanggal_baru)
@@ -836,7 +881,7 @@ class RundownTanggalUpdateView(AdminRequiredMixin, View):
             messages.warning(
                 request, f'Tidak ada sesi pada "{hari_ke}" untuk diperbarui.',
             )
-        return redirect('rundown_admin:rundown_list')
+        return _redirect_rundown_list(periode)
 
 
 class RundownDeleteView(AdminRequiredMixin, View):
@@ -844,19 +889,20 @@ class RundownDeleteView(AdminRequiredMixin, View):
 
     def post(self, request, pk):
         rundown = get_object_or_404(RundownDAD, pk=pk)
+        periode = rundown.id_periode
         materi = rundown.materi
         rundown.delete()
         messages.success(request, f'Sesi "{materi}" berhasil dihapus.')
-        return redirect('rundown_admin:rundown_list')
+        return _redirect_rundown_list(periode)
 
 
 class GenerateAllQRView(AdminRequiredMixin, View):
     """Admin: batch generate QR token untuk semua sesi is_absensi × kelompok."""
 
     def post(self, request):
-        periode = PeriodeDAD.get_active_period()
+        periode = _resolve_rundown_periode(request)
         if not periode:
-            messages.error(request, 'Tidak ada periode aktif.')
+            messages.error(request, 'Periode tidak ditemukan.')
             return redirect('rundown_admin:rundown_list')
 
         created = AbsensiService.generate_all_qr(periode)
@@ -864,7 +910,44 @@ class GenerateAllQRView(AdminRequiredMixin, View):
             messages.info(request, 'Semua QR sudah ter-generate atau belum ada sesi yang memerlukan absensi.')
         else:
             messages.success(request, f'{created} QR Code berhasil di-generate.')
-        return redirect('rundown_admin:rundown_list')
+        return _redirect_rundown_list(periode)
+
+
+class RundownCopyView(AdminRequiredMixin, View):
+    """Admin: salin seluruh sesi rundown dari periode lain ke periode terpilih.
+
+    Berguna saat menyiapkan periode baru — daripada input puluhan sesi dari nol,
+    admin menyalin susunan rundown periode sebelumnya lalu menyesuaikan tanggal.
+    """
+
+    def post(self, request):
+        tujuan = _resolve_rundown_periode(request)
+        if not tujuan:
+            messages.error(request, 'Periode tujuan tidak ditemukan.')
+            return redirect('rundown_admin:rundown_list')
+
+        sumber = PeriodeDAD.objects.filter(pk=request.POST.get('sumber')).first()
+        if not sumber:
+            messages.error(request, 'Periode sumber tidak valid.')
+            return _redirect_rundown_list(tujuan)
+        if sumber.pk == tujuan.pk:
+            messages.error(request, 'Periode sumber dan tujuan tidak boleh sama.')
+            return _redirect_rundown_list(tujuan)
+
+        disalin = RundownService.copy_rundown(sumber, tujuan)
+        if disalin:
+            messages.success(
+                request,
+                f'{disalin} sesi disalin dari "{sumber.nama_periode}". '
+                'Sesuaikan tanggal tiap hari lewat tombol "Ubah tanggal".',
+            )
+        else:
+            messages.warning(
+                request,
+                'Tidak ada sesi disalin. Pastikan periode tujuan masih kosong dan '
+                'periode sumber memiliki rundown.',
+            )
+        return _redirect_rundown_list(tujuan)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
