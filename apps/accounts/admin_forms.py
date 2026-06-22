@@ -56,32 +56,14 @@ class AdminUserCreateForm(forms.ModelForm):
 
 
 class AdminUserUpdateForm(forms.ModelForm):
-    """Form untuk admin memperbarui detail user.
+    """Form untuk admin memperbarui identitas, role, dan status aktif user.
 
-    Field password opsional: bila dikosongkan, password lama dipertahankan;
-    bila diisi, password di-hash ulang dengan ``set_password``. Ini satu-
-    satunya jalan bagi admin mereset password staf (panitia/penulis) yang
-    lupa/salah password, karena staf tidak punya akses self-service selain
-    OTP email.
+    Pengaturan ulang password TIDAK ditangani di form ini, melainkan di
+    halaman khusus 'Ubah Password' (lihat ``AdminSetPasswordForm`` dan
+    ``UserPasswordChangeView``). Pemisahan ini membuat alurnya jelas dan
+    memungkinkan penanganan sesi yang benar saat admin mengubah password
+    akunnya sendiri (mencegah ter-logout otomatis).
     """
-
-    password1 = forms.CharField(
-        label='Password Baru',
-        required=False,
-        widget=forms.PasswordInput(attrs={
-            'placeholder': 'Kosongkan jika tidak ingin mengubah password',
-            'autocomplete': 'new-password',
-        }),
-        help_text='Isi hanya jika ingin mereset password user ini (min. 8 karakter).',
-    )
-    password2 = forms.CharField(
-        label='Konfirmasi Password Baru',
-        required=False,
-        widget=forms.PasswordInput(attrs={
-            'placeholder': 'Ulangi password baru',
-            'autocomplete': 'new-password',
-        }),
-    )
 
     class Meta:
         model = User
@@ -99,26 +81,55 @@ class AdminUserUpdateForm(forms.ModelForm):
             ]),
         }
 
-    def clean_password1(self):
-        password1 = self.cleaned_data.get('password1')
-        if password1 and len(password1) < 8:
+
+class AdminSetPasswordForm(forms.Form):
+    """Form khusus admin untuk menetapkan password baru sebuah user.
+
+    Dipakai di halaman 'Ubah Password' yang terpisah dari form edit identitas.
+    Admin dapat menetapkan password untuk semua role (admin/panitia/penulis/
+    calon kader) termasuk akunnya sendiri. Ini menjadi alternatif cepat bila
+    user lupa password dan reset OTP email merepotkan: admin langsung
+    mengganti passwordnya di sini.
+
+    Aturan password disamakan dengan form lain di app ini (min. 8 karakter).
+    """
+
+    new_password1 = forms.CharField(
+        label='Password Baru',
+        widget=forms.PasswordInput(attrs={
+            'placeholder': 'Password baru (min. 8 karakter)',
+            'autocomplete': 'new-password',
+        }),
+    )
+    new_password2 = forms.CharField(
+        label='Konfirmasi Password Baru',
+        widget=forms.PasswordInput(attrs={
+            'placeholder': 'Ulangi password baru',
+            'autocomplete': 'new-password',
+        }),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        # ``user`` adalah user TARGET yang passwordnya akan diubah.
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_new_password1(self):
+        password = self.cleaned_data.get('new_password1')
+        if password and len(password) < 8:
             raise forms.ValidationError('Password minimal 8 karakter.')
-        return password1
+        return password
 
     def clean(self):
         cleaned_data = super().clean()
-        p1 = cleaned_data.get('password1')
-        p2 = cleaned_data.get('password2')
-        if p1 and p1 != p2:
-            self.add_error('password2', 'Password tidak cocok.')
+        p1 = cleaned_data.get('new_password1')
+        p2 = cleaned_data.get('new_password2')
+        if p1 and p2 and p1 != p2:
+            self.add_error('new_password2', 'Password tidak cocok.')
         return cleaned_data
 
     def save(self, commit=True):
-        user = super().save(commit=False)
-        # Hanya ubah password bila admin mengisinya. Kosong = pertahankan hash lama.
-        new_password = self.cleaned_data.get('password1')
-        if new_password:
-            user.set_password(new_password)
+        self.user.set_password(self.cleaned_data['new_password1'])
         if commit:
-            user.save()
-        return user
+            self.user.save()
+        return self.user

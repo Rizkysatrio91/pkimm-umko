@@ -1,11 +1,16 @@
 """View admin untuk manajemen user."""
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, FormView, ListView, UpdateView
 
-from apps.accounts.admin_forms import AdminUserCreateForm, AdminUserUpdateForm
+from apps.accounts.admin_forms import (
+    AdminSetPasswordForm,
+    AdminUserCreateForm,
+    AdminUserUpdateForm,
+)
 from apps.accounts.models import User
 from core.constants import UserRole
 from core.mixins import AdminRequiredMixin
@@ -105,6 +110,54 @@ class UserUpdateView(AdminRequiredMixin, UpdateView):
         ctx['form_title'] = 'Edit User'
         ctx['is_edit'] = True
         return ctx
+
+
+class UserPasswordChangeView(AdminRequiredMixin, FormView):
+    """Admin: ubah/atur ulang password user mana pun (semua role + diri sendiri).
+
+    Halaman khusus, terpisah dari form edit identitas. Berguna sebagai
+    alternatif cepat ketika user lupa password dan reset OTP email merepotkan:
+    admin langsung menetapkan password baru di sini lalu memberitahukannya ke
+    user yang bersangkutan.
+    """
+
+    template_name = 'accounts/user_password_change.html'
+    form_class = AdminSetPasswordForm
+    success_url = reverse_lazy('user_admin:user_list')
+
+    def get_target_user(self) -> User:
+        """User yang passwordnya akan diubah (di-cache per request)."""
+        if not hasattr(self, '_target_user'):
+            self._target_user = get_object_or_404(User, id_user=self.kwargs['pk'])
+        return self._target_user
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.get_target_user()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        target = self.get_target_user()
+        ctx['target_user'] = target
+        ctx['is_self'] = target.pk == self.request.user.pk
+        return ctx
+
+    def form_valid(self, form):
+        target = form.user
+        is_self = target.pk == self.request.user.pk
+        form.save()
+        # Bila admin mengubah password AKUNNYA SENDIRI, perbarui hash sesi agar
+        # tidak otomatis ter-logout oleh SessionAuthenticationMiddleware.
+        if is_self:
+            update_session_auth_hash(self.request, target)
+            messages.success(self.request, 'Password Anda berhasil diubah.')
+        else:
+            messages.success(
+                self.request,
+                f'Password user "{target.username}" berhasil diubah.',
+            )
+        return super().form_valid(form)
 
 
 class UserDeleteView(AdminRequiredMixin, DeleteView):
