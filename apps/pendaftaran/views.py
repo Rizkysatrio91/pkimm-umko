@@ -1,5 +1,6 @@
 """View untuk app pendaftaran — semua menggunakan CBV."""
 import json
+from datetime import date
 
 from django.contrib import messages
 from django.db.models import Count, Q
@@ -789,6 +790,53 @@ class RundownUpdateView(AdminRequiredMixin, View):
             messages.success(request, f'Sesi "{rundown.materi}" berhasil diperbarui.{qr_msg}')
             return redirect('rundown_admin:rundown_list')
         return render(request, self.template_name, {'form': form, 'is_edit': True, 'rundown': rundown})
+
+
+class RundownTanggalUpdateView(AdminRequiredMixin, View):
+    """Admin: ubah tanggal untuk SELURUH sesi dalam satu hari sekaligus.
+
+    Dipakai dari editor tanggal inline di header tiap hari pada halaman
+    Rundown DAD. Mengubah tanggal di sini menimpa kolom ``tanggal`` pada
+    SEMUA sesi dengan ``hari_ke`` yang sama dalam periode aktif — sehingga
+    admin tidak perlu mengedit tanggal satu per satu per sesi (mis. ubah
+    tanggal "Kedatangan" → seluruh aktivitas hari kedatangan ikut berubah).
+    """
+
+    def post(self, request):
+        periode = PeriodeDAD.get_active_period()
+        if not periode:
+            messages.error(request, 'Tidak ada periode aktif.')
+            return redirect('rundown_admin:rundown_list')
+
+        hari_ke = (request.POST.get('hari_ke') or '').strip()
+        tanggal_str = (request.POST.get('tanggal') or '').strip()
+
+        if not hari_ke:
+            messages.error(request, 'Hari tidak valid.')
+            return redirect('rundown_admin:rundown_list')
+
+        try:
+            tanggal_baru = date.fromisoformat(tanggal_str)
+        except ValueError:
+            messages.error(request, 'Format tanggal tidak valid.')
+            return redirect('rundown_admin:rundown_list')
+
+        # Bulk-update semua sesi pada hari ini dalam periode aktif.
+        updated = RundownDAD.objects.filter(
+            id_periode=periode, hari_ke=hari_ke,
+        ).update(tanggal=tanggal_baru)
+
+        if updated:
+            messages.success(
+                request,
+                f'Tanggal "{hari_ke}" diperbarui ke '
+                f'{tanggal_baru.strftime("%d-%m-%Y")} untuk {updated} sesi.',
+            )
+        else:
+            messages.warning(
+                request, f'Tidak ada sesi pada "{hari_ke}" untuk diperbarui.',
+            )
+        return redirect('rundown_admin:rundown_list')
 
 
 class RundownDeleteView(AdminRequiredMixin, View):

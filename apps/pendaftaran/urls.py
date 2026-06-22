@@ -48,6 +48,7 @@ rundown_admin_urlpatterns = [
     path('', views.RundownListView.as_view(), name='rundown_list'),
     path('tambah/', views.RundownCreateView.as_view(), name='rundown_create'),
     path('<int:pk>/edit/', views.RundownUpdateView.as_view(), name='rundown_update'),
+    path('ubah-tanggal/', views.RundownTanggalUpdateView.as_view(), name='rundown_tanggal_update'),
     path('<int:pk>/hapus/', views.RundownDeleteView.as_view(), name='rundown_delete'),
     path('generate-qr/', views.GenerateAllQRView.as_view(), name='generate_qr'),
 ]

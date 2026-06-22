@@ -38,12 +38,44 @@
     {% else %}
     {% for hari_ke, sesi_list in hari_groups.items %}
     <div class="mb-6">
-        <h2 class="text-lg font-bold text-maroon mb-3 flex items-center gap-2">
-            <span class="bg-maroon text-white min-w-8 h-8 px-3 rounded-full flex items-center justify-center text-sm font-bold">{{ hari_ke }}</span>
-            {% if sesi_list.0.tanggal %}
-            <span class="text-sm font-normal text-gray-500">{{ sesi_list.0.tanggal|date:"l, d F Y" }}</span>
-            {% endif %}
-        </h2>
+        <div class="mb-3 flex items-center gap-2 flex-wrap" x-data="{ editing: false }">
+            <h2 class="text-lg font-bold text-maroon flex items-center">
+                <span class="bg-maroon text-white min-w-8 h-8 px-3 rounded-full flex items-center justify-center text-sm font-bold">{{ hari_ke }}</span>
+            </h2>
+
+            <!-- Mode tampil: tanggal + tombol ubah -->
+            <div x-show="!editing" class="flex items-center gap-2">
+                <span class="text-sm font-normal text-gray-500">
+                    {% if sesi_list.0.tanggal %}{{ sesi_list.0.tanggal|date:"l, d F Y" }}{% else %}Tanggal belum diatur{% endif %}
+                </span>
+                <button type="button" @click="editing = true"
+                        title="Ubah tanggal untuk SEMUA sesi pada hari ini sekaligus"
+                        class="text-blue-600 hover:text-blue-800 text-xs inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Ubah tanggal
+                </button>
+            </div>
+
+            <!-- Mode edit: input tanggal (hari/bulan/tahun) untuk seluruh sesi hari ini -->
+            <form method="post" action="{% url 'rundown_admin:rundown_tanggal_update' %}"
+                  x-show="editing" style="display:none" class="flex items-center gap-2 flex-wrap"
+                  onsubmit="return confirm('Ubah tanggal untuk SEMUA sesi pada hari ini menjadi tanggal yang dipilih?')">
+                {% csrf_token %}
+                <input type="hidden" name="hari_ke" value="{{ hari_ke }}">
+                <input type="date" name="tanggal" required
+                       value="{{ sesi_list.0.tanggal|date:'Y-m-d' }}"
+                       class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                <button type="submit"
+                        class="px-3 py-1 bg-maroon text-white rounded-lg hover:bg-maroon-dark transition text-xs font-semibold">
+                    Simpan
+                </button>
+                <button type="button" @click="editing = false"
+                        class="text-gray-500 hover:text-gray-700 text-xs">Batal</button>
+            </form>
+        </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-cream">
