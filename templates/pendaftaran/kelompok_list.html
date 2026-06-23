@@ -2,7 +2,7 @@
 {% block title %}Kelompok DAD — Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto" x-data="kelompokFilter()">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
@@ -34,16 +34,49 @@
         <p class="text-yellow-700">Aktifkan periode DAD terlebih dahulu untuk mengelola kelompok.</p>
     </div>
     {% else %}
+    <!-- Filter pencarian nama / NPM (live, lintas semua kelompok) -->
+    <div class="mb-6">
+        <div class="relative max-w-md">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/>
+                </svg>
+            </span>
+            <input type="text" x-model="q"
+                   placeholder="Cari nama atau NPM..."
+                   autocomplete="off"
+                   class="w-full border border-gray-200 rounded-lg pl-10 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
+            <button type="button" x-show="q" @click="q = ''"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Bersihkan pencarian">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <p x-show="term() !== ''" class="text-xs text-gray-500 mt-2">
+            Menampilkan <span class="font-semibold text-maroon" x-text="totalMatch()"></span> peserta yang cocok
+            untuk "<span x-text="q.trim()"></span>".
+        </p>
+    </div>
+
+    <!-- Banner: tidak ada hasil di seluruh kelompok -->
+    <div x-show="term() !== '' && totalMatch() === 0"
+         class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center mb-6">
+        <p class="text-sm text-yellow-700">
+            Tidak ada peserta dengan nama/NPM "<span class="font-semibold" x-text="q.trim()"></span>".
+        </p>
+    </div>
+
     <!-- 3 Column Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {% for kelompok in kelompok_list %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div data-group class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <!-- Header -->
             <div class="bg-maroon px-4 py-3 flex items-center justify-between">
                 <h2 class="text-lg font-bold text-white">Kelas {{ kelompok.nama_kelompok }}</h2>
-                <span class="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    {{ kelompok.jumlah_anggota }} peserta
-                </span>
+                <span class="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap"
+                      x-text="badgeText($el.closest('[data-group]'), {{ kelompok.jumlah_anggota }})">{{ kelompok.jumlah_anggota }} peserta</span>
             </div>
 
             <!-- PJ Info -->
@@ -63,7 +96,9 @@
             <!-- Member List -->
             <div class="divide-y divide-gray-50 max-h-80 overflow-y-auto">
                 {% for p in kelompok.anggota_set.all %}
-                <div class="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
+                <div data-search="{{ p.id_biodata.nama_lengkap|lower }} {{ p.id_biodata.npm|lower }}"
+                     x-show="showRow($el.dataset.search)"
+                     class="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
                     <div class="min-w-0">
                         <p class="text-sm font-medium text-gray-800 truncate">{{ p.id_biodata.nama_lengkap }}</p>
                         <p class="text-xs text-gray-500">{{ p.id_biodata.npm }}</p>
@@ -74,10 +109,57 @@
                 {% empty %}
                 <div class="px-4 py-6 text-center text-sm text-gray-400">Belum ada anggota</div>
                 {% endfor %}
+                {% if kelompok.jumlah_anggota %}
+                <!-- Pesan saat ada anggota tapi tak ada yang cocok dengan pencarian -->
+                <div x-show="term() !== '' && countIn($el.closest('[data-group]')) === 0"
+                     class="px-4 py-6 text-center text-sm text-gray-400">
+                    Tidak ada yang cocok di kelas ini.
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function kelompokFilter() {
+        return {
+            q: '',
+            // Kata kunci ternormalisasi (huruf kecil, tanpa spasi tepi)
+            term() {
+                return this.q.trim().toLowerCase();
+            },
+            // Apakah satu baris (data-search sudah lowercase) cocok dengan kata kunci
+            showRow(text) {
+                const t = this.term();
+                return t === '' || (text || '').includes(t);
+            },
+            // Jumlah anggota yang cocok di dalam sebuah elemen kelompok
+            countIn(groupEl) {
+                if (!groupEl) return 0;
+                const t = this.term();
+                const rows = groupEl.querySelectorAll('[data-search]');
+                if (t === '') return rows.length;
+                let n = 0;
+                rows.forEach(function (r) {
+                    if ((r.dataset.search || '').includes(t)) n++;
+                });
+                return n;
+            },
+            // Total anggota yang cocok di seluruh halaman
+            totalMatch() {
+                return this.countIn(this.$root);
+            },
+            // Teks badge: total saat tidak mencari, "cocok / total" saat mencari
+            badgeText(groupEl, total) {
+                if (this.term() === '') return total + ' peserta';
+                return this.countIn(groupEl) + ' / ' + total;
+            },
+        };
+    }
+</script>
 {% endblock %}
