@@ -1,35 +1,32 @@
-"""Views untuk app laporan — filter berdasarkan periode (dropdown bulan + tahun)."""
-from datetime import datetime
-
+"""Views untuk app laporan — filter berdasarkan Periode DAD yang terdaftar."""
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView
 
 from apps.kader.models import BiodataKader
-from apps.laporan.services import NAMA_BULAN, LaporanService
-from apps.pendaftaran.models import PendaftaranDAD
+from apps.laporan.services import LaporanService
+from apps.pendaftaran.models import PendaftaranDAD, PeriodeDAD
 from apps.penilaian.models import RekapLeaderboard
 from core.mixins import AdminRequiredMixin
 
 XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 
-def _parse_periode(periode_value: str) -> tuple:
+def _resolve_periode(periode_value: str) -> tuple:
     """
-    Parse string "YYYY-MM".
-    Return (year_int, month_int, label_str).
-    Jika kosong atau tidak valid, return (None, None, 'Semua Periode').
+    Resolve nilai dropdown (id_periode) ke objek PeriodeDAD + label.
+    Kosong/invalid → (None, 'Semua Periode').
     """
     if not periode_value:
-        return None, None, 'Semua Periode'
+        return None, 'Semua Periode'
     try:
-        year_str, month_str = periode_value.split('-')
-        year, month = int(year_str), int(month_str)
-        label = f'{NAMA_BULAN[month - 1]} {year}'
-        return year, month, label
-    except (ValueError, IndexError):
-        return None, None, 'Semua Periode'
+        periode = PeriodeDAD.objects.filter(pk=int(periode_value)).first()
+    except (ValueError, TypeError):
+        periode = None
+    if periode is None:
+        return None, 'Semua Periode'
+    return periode, periode.nama_periode
 
 
 class LaporanView(AdminRequiredMixin, TemplateView):
@@ -39,36 +36,63 @@ class LaporanView(AdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        now = datetime.now()
-        choices = []
-        for year in range(2025, now.year + 1):
-            for month in range(1, 13):
-                if year == now.year and month > now.month:
-                    break
-                choices.append({
-                    'value': f'{year}-{month:02d}',
-                    'label': f'{NAMA_BULAN[month - 1]} {year}',
-                })
-        ctx['bulan_tahun_choices'] = list(reversed(choices))
+        # Dropdown periode diisi dari Periode DAD yang benar-benar terdaftar
+        # (urutan terbaru dulu mengikuti Meta.ordering = ['-created_at']).
+        ctx['periode_choices'] = [
+            {
+                'value': p.id_periode,
+                'label': f'{p.nama_periode} — Aktif' if p.is_active else p.nama_periode,
+            }
+            for p in PeriodeDAD.objects.all()
+        ]
 
-        # Opsi per-kader untuk unduhan detail
-        ctx['kader_choices'] = list(
-            BiodataKader.objects
+        # Opsi per-kader/pendaftar/peserta untuk unduhan detail.
+        # Dinormalisasi ke bentuk seragam {id, label, search} supaya filter
+        # pencarian (nama/NPM/registrasi) di sisi klien sederhana & andal.
+        ctx['kader_choices'] = [
+            {
+                'id': k['id_biodata'],
+                'label': f"{k['nama_lengkap']} — {k['npm'] or '-'}",
+                'search': f"{k['nama_lengkap'] or ''} {k['npm'] or ''}".lower(),
+            }
+            for k in BiodataKader.objects
             .exclude(jabatan_struktural='calon')
             .order_by('nama_lengkap')
             .values('id_biodata', 'nama_lengkap', 'npm')
-        )
-        ctx['pendaftar_choices'] = list(
-            PendaftaranDAD.objects
+        ]
+        ctx['pendaftar_choices'] = [
+            {
+                'id': p['id_pendaftaran'],
+                'label': f"{p['id_biodata__nama_lengkap']} — {p['no_registrasi']}",
+                'search': (
+                    f"{p['id_biodata__nama_lengkap'] or ''} "
+                    f"{p['id_biodata__npm'] or ''} "
+                    f"{p['no_registrasi'] or ''}"
+                ).lower(),
+            }
+            for p in PendaftaranDAD.objects
             .select_related('id_biodata')
             .order_by('id_biodata__nama_lengkap')
             .values(
                 'id_pendaftaran', 'no_registrasi',
                 'id_biodata__nama_lengkap', 'id_biodata__npm',
             )
-        )
-        ctx['kelulusan_choices'] = list(
-            RekapLeaderboard.objects
+        ]
+        ctx['kelulusan_choices'] = [
+            {
+                'id': r['id_rekap'],
+                'label': (
+                    f"#{r['peringkat'] if r['peringkat'] is not None else '-'} "
+                    f"{r['id_pendaftaran__id_biodata__nama_lengkap']} — "
+                    f"{r['id_pendaftaran__id_biodata__npm'] or '-'}"
+                ),
+                'search': (
+                    f"{r['id_pendaftaran__id_biodata__nama_lengkap'] or ''} "
+                    f"{r['id_pendaftaran__id_biodata__npm'] or ''} "
+                    f"{r['id_pendaftaran__no_registrasi'] or ''}"
+                ).lower(),
+            }
+            for r in RekapLeaderboard.objects
             .select_related('id_pendaftaran__id_biodata')
             .order_by('peringkat')
             .values(
@@ -77,7 +101,7 @@ class LaporanView(AdminRequiredMixin, TemplateView):
                 'id_pendaftaran__id_biodata__nama_lengkap',
                 'id_pendaftaran__id_biodata__npm',
             )
-        )
+        ]
         return ctx
 
 
@@ -87,10 +111,10 @@ class LaporanView(AdminRequiredMixin, TemplateView):
 
 class KaderPDFView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = BiodataKader.objects.exclude(jabatan_struktural='calon')
-        if year and month:
-            qs = qs.filter(updated_at__year=year, updated_at__month=month)
+        if periode:
+            qs = qs.filter(pendaftaran__id_periode=periode)
 
         data, ctype, ext = LaporanService.generate_rekap_kader_pdf(qs, label, request.user)
         response = HttpResponse(data, content_type=ctype)
@@ -100,10 +124,10 @@ class KaderPDFView(AdminRequiredMixin, View):
 
 class KaderExcelView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = BiodataKader.objects.exclude(jabatan_struktural='calon')
-        if year and month:
-            qs = qs.filter(updated_at__year=year, updated_at__month=month)
+        if periode:
+            qs = qs.filter(pendaftaran__id_periode=periode)
 
         excel = LaporanService.generate_rekap_kader_excel(qs, label, request.user)
         response = HttpResponse(excel, content_type=XLSX_TYPE)
@@ -117,10 +141,10 @@ class KaderExcelView(AdminRequiredMixin, View):
 
 class PendaftarPDFView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = PendaftaranDAD.objects.select_related('id_biodata').all()
-        if year and month:
-            qs = qs.filter(tgl_daftar__year=year, tgl_daftar__month=month)
+        if periode:
+            qs = qs.filter(id_periode=periode)
 
         data, ctype, ext = LaporanService.generate_rekap_pendaftar_pdf(qs, label, request.user)
         response = HttpResponse(data, content_type=ctype)
@@ -130,10 +154,10 @@ class PendaftarPDFView(AdminRequiredMixin, View):
 
 class PendaftarExcelView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = PendaftaranDAD.objects.select_related('id_biodata').all()
-        if year and month:
-            qs = qs.filter(tgl_daftar__year=year, tgl_daftar__month=month)
+        if periode:
+            qs = qs.filter(id_periode=periode)
 
         excel = LaporanService.generate_rekap_pendaftar_excel(qs, label, request.user)
         response = HttpResponse(excel, content_type=XLSX_TYPE)
@@ -147,12 +171,12 @@ class PendaftarExcelView(AdminRequiredMixin, View):
 
 class KelulusanPDFView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = RekapLeaderboard.objects.select_related(
             'id_pendaftaran__id_biodata'
         ).filter(id_pendaftaran__status_kelulusan='lulus').order_by('peringkat')
-        if year and month:
-            qs = qs.filter(updated_at__year=year, updated_at__month=month)
+        if periode:
+            qs = qs.filter(id_pendaftaran__id_periode=periode)
 
         data, ctype, ext = LaporanService.generate_rekap_kelulusan_pdf(qs, label, request.user)
         response = HttpResponse(data, content_type=ctype)
@@ -162,12 +186,12 @@ class KelulusanPDFView(AdminRequiredMixin, View):
 
 class KelulusanExcelView(AdminRequiredMixin, View):
     def get(self, request):
-        year, month, label = _parse_periode(request.GET.get('periode', ''))
+        periode, label = _resolve_periode(request.GET.get('periode', ''))
         qs = RekapLeaderboard.objects.select_related(
             'id_pendaftaran__id_biodata'
         ).filter(id_pendaftaran__status_kelulusan='lulus').order_by('peringkat')
-        if year and month:
-            qs = qs.filter(updated_at__year=year, updated_at__month=month)
+        if periode:
+            qs = qs.filter(id_pendaftaran__id_periode=periode)
 
         excel = LaporanService.generate_rekap_kelulusan_excel(qs, label, request.user)
         response = HttpResponse(excel, content_type=XLSX_TYPE)

@@ -5,18 +5,18 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto"
-     x-data="{ periode: '{{ bulan_tahun_choices.0.value }}' }">
+     x-data="{ periode: '{{ periode_choices.0.value }}' }">
 
     <!-- Filter Periode -->
     <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
         <h3 class="text-sm font-semibold text-gray-700 mb-3">Filter Periode</h3>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div class="w-full sm:w-72">
-                <label class="block text-xs text-gray-500 mb-1 font-medium">Pilih Bulan &amp; Tahun</label>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Pilih Periode DAD</label>
                 <select x-model="periode"
                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
                     <option value="">Semua Periode (Tanpa Filter)</option>
-                    {% for item in bulan_tahun_choices %}
+                    {% for item in periode_choices %}
                     <option value="{{ item.value }}">{{ item.label }}</option>
                     {% endfor %}
                 </select>
@@ -154,7 +154,7 @@
 
         <!-- Detail Kader -->
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
-             x-data="{ pk: '' }">
+             x-data="detailPicker('kader-data')">
             <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -163,14 +163,8 @@
             </div>
             <h3 class="font-semibold text-gray-900 mb-1">Detail Kader</h3>
             <p class="text-xs text-gray-500 mb-3">Informasi lengkap satu kader (biodata, akun, riwayat pendaftaran).</p>
-            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih kader</label>
-            <select x-model="pk"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
-                <option value="">— Pilih kader —</option>
-                {% for k in kader_choices %}
-                <option value="{{ k.id_biodata }}">{{ k.nama_lengkap }} — {{ k.npm }}</option>
-                {% endfor %}
-            </select>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Cari &amp; pilih kader</label>
+            {% include "laporan/_detail_picker.html" with placeholder="Ketik nama atau NPM…" %}
             <div class="flex gap-2 mt-auto">
                 <a :href="pk ? '{% url 'laporan:kader_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
                    :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
@@ -187,7 +181,7 @@
 
         <!-- Detail Pendaftar DAD -->
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
-             x-data="{ pk: '' }">
+             x-data="detailPicker('pendaftar-data')">
             <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -196,14 +190,8 @@
             </div>
             <h3 class="font-semibold text-gray-900 mb-1">Detail Pendaftar DAD</h3>
             <p class="text-xs text-gray-500 mb-3">Biodata + verifikasi + kelompok + interview + aktivitas + absensi.</p>
-            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih pendaftar</label>
-            <select x-model="pk"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
-                <option value="">— Pilih pendaftar —</option>
-                {% for p in pendaftar_choices %}
-                <option value="{{ p.id_pendaftaran }}">{{ p.id_biodata__nama_lengkap }} — {{ p.no_registrasi }}</option>
-                {% endfor %}
-            </select>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Cari &amp; pilih pendaftar</label>
+            {% include "laporan/_detail_picker.html" with placeholder="Ketik nama, NPM, atau no. registrasi…" %}
             <div class="flex gap-2 mt-auto">
                 <a :href="pk ? '{% url 'laporan:pendaftar_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
                    :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
@@ -220,7 +208,7 @@
 
         <!-- Detail Kelulusan -->
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex flex-col"
-             x-data="{ pk: '' }">
+             x-data="detailPicker('kelulusan-data')">
             <div class="w-11 h-11 bg-maroon/10 rounded-xl flex items-center justify-center mb-4">
                 <svg class="w-6 h-6 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -229,14 +217,8 @@
             </div>
             <h3 class="font-semibold text-gray-900 mb-1">Detail Kelulusan</h3>
             <p class="text-xs text-gray-500 mb-3">Semua data pendaftar + skor akhir + peringkat + status kelulusan.</p>
-            <label class="text-xs text-gray-500 mb-1 font-medium">Pilih peserta</label>
-            <select x-model="pk"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white mb-3">
-                <option value="">— Pilih peserta —</option>
-                {% for r in kelulusan_choices %}
-                <option value="{{ r.id_rekap }}">#{{ r.peringkat|default:"-" }} {{ r.id_pendaftaran__id_biodata__nama_lengkap }} — {{ r.id_pendaftaran__id_biodata__npm }}</option>
-                {% endfor %}
-            </select>
+            <label class="text-xs text-gray-500 mb-1 font-medium">Cari &amp; pilih peserta</label>
+            {% include "laporan/_detail_picker.html" with placeholder="Ketik nama atau NPM…" %}
             <div class="flex gap-2 mt-auto">
                 <a :href="pk ? '{% url 'laporan:kelulusan_detail_pdf' 0 %}'.replace('/0/', '/' + pk + '/') : '#'"
                    :class="pk ? 'bg-[#5B1525] hover:bg-[#7A2E3E]' : 'bg-gray-300 pointer-events-none'"
@@ -253,5 +235,61 @@
 
     </div>
 
+    {# Data pilihan untuk combobox pencarian (dibaca oleh Alpine component) #}
+    {{ kader_choices|json_script:"kader-data" }}
+    {{ pendaftar_choices|json_script:"pendaftar-data" }}
+    {{ kelulusan_choices|json_script:"kelulusan-data" }}
+
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>[x-cloak]{display:none!important}</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('detailPicker', (dataElId) => ({
+        items: [],
+        query: '',
+        pk: '',          // id terpilih — dipakai oleh tombol PDF/Excel
+        open: false,
+        init() {
+            const el = document.getElementById(dataElId);
+            try {
+                this.items = el ? JSON.parse(el.textContent) : [];
+            } catch (e) {
+                this.items = [];
+            }
+        },
+        get filtered() {
+            const q = this.query.trim().toLowerCase();
+            const selected = this.items.find(i => String(i.id) === String(this.pk));
+            // Tanpa kata kunci, atau query masih sama dengan label terpilih
+            // (mode "lihat semua" saat fokus ulang) → tampilkan seluruh daftar.
+            const browsing = !q || (selected && this.query === selected.label);
+            const list = browsing
+                ? this.items
+                : this.items.filter(i => i.search.includes(q));
+            return list.slice(0, 50);   // batasi agar daftar tetap ringan
+        },
+        onInput() {
+            // Mengetik ulang berarti mencari orang baru → reset pilihan.
+            this.pk = '';
+            this.open = true;
+        },
+        choose(item) {
+            this.pk = item.id;
+            this.query = item.label;
+            this.open = false;
+        },
+        clear() {
+            this.pk = '';
+            this.query = '';
+            this.open = false;
+        },
+    }));
+});
+</script>
 {% endblock %}

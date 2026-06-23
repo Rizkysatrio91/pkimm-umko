@@ -1,0 +1,35 @@
+{% comment %}
+Combobox pencarian untuk "Unduh Detail Per-Orang".
+Dipakai di dalam elemen ber-x-data="detailPicker('<id-data>')".
+Variabel scope: query, open, pk, filtered, onInput(), choose(), clear().
+Parameter include: placeholder (teks input).
+{% endcomment %}
+<div class="relative mb-3" @click.away="open = false">
+    <input type="text" x-model="query"
+           @focus="open = true; $el.select()" @input="onInput()"
+           placeholder="{{ placeholder|default:'Ketik nama atau NPM…' }}"
+           autocomplete="off"
+           class="w-full border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-xs focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
+
+    {# Tombol bersihkan pilihan #}
+    <button type="button" x-show="query" @click="clear()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            title="Bersihkan">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+
+    {# Daftar hasil pencarian #}
+    <div x-show="open" x-cloak x-transition.opacity
+         class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+        <template x-for="item in filtered" :key="item.id">
+            <button type="button" @click="choose(item)"
+                    class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-maroon/10 border-b border-gray-50 last:border-0"
+                    x-text="item.label"></button>
+        </template>
+        <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400">
+            Tidak ada hasil yang cocok.
+        </div>
+    </div>
+</div>
