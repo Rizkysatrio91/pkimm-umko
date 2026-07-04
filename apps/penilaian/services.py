@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import transaction
 
 from apps.notifikasi.models import Notifikasi
-from apps.pendaftaran.models import AbsensiDAD, PendaftaranDAD, QRAbsensi, RundownDAD
+from apps.pendaftaran.models import AbsensiDAD, PendaftaranDAD, PeriodeDAD, QRAbsensi, RundownDAD
 from apps.penilaian.models import NilaiAktivitas, RekapLeaderboard
 from core.constants import StatusAbsensi, StatusKelulusan, TipeNotifikasi
 
@@ -139,15 +139,25 @@ class KelulusanService:
 
     @staticmethod
     @transaction.atomic
-    def tetapkan_kelulusan(passing_grade: Decimal) -> dict:
-        """Tetapkan status kelulusan semua peserta berdasarkan passing grade.
+    def tetapkan_kelulusan(passing_grade: Decimal, periode: PeriodeDAD | None = None) -> dict:
+        """Tetapkan status kelulusan peserta SATU periode berdasarkan passing grade.
+
+        Args:
+            periode: PeriodeDAD yang diproses. Default None = periode aktif
+                saat ini. Peserta periode lain TIDAK disentuh (status dan
+                notifikasi kelulusan mereka tidak diproses ulang).
 
         Returns:
             dict berisi jumlah: {'lulus': int, 'tidak_lulus': int}
         """
+        if periode is None:
+            periode = PeriodeDAD.get_active_period()
+        if periode is None:
+            return {'lulus': 0, 'tidak_lulus': 0}
+
         rekap_list = RekapLeaderboard.objects.select_related(
             'id_pendaftaran__id_biodata__id_user',
-        ).all()
+        ).filter(id_pendaftaran__id_periode=periode)
 
         lulus_count = 0
         tidak_lulus_count = 0

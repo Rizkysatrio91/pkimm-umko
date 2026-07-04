@@ -427,6 +427,20 @@ class AktivitasCreateView(PanitiaRequiredMixin, TahapRequiredMixin, KelompokScop
 
 # ─── Leaderboard ────────────────────────────────────────────────────────────
 
+def _leaderboard_periode_aktif():
+    """Queryset leaderboard peserta periode DAD aktif, urut peringkat.
+
+    Kosong bila tidak ada periode aktif — leaderboard memang per-periode,
+    bukan gabungan seluruh periode.
+    """
+    periode = PeriodeDAD.get_active_period()
+    if periode is None:
+        return RekapLeaderboard.objects.none()
+    return RekapLeaderboard.objects.select_related(
+        'id_pendaftaran__id_biodata',
+    ).filter(id_pendaftaran__id_periode=periode).order_by('peringkat')
+
+
 class LeaderboardView(RoleRequiredMixin, ListView):
     """Leaderboard yang dapat dilihat oleh admin, panitia, dan calon kader saja."""
 
@@ -437,9 +451,7 @@ class LeaderboardView(RoleRequiredMixin, ListView):
     context_object_name = 'leaderboard'
 
     def get_queryset(self):
-        return RekapLeaderboard.objects.select_related(
-            'id_pendaftaran__id_biodata',
-        ).order_by('peringkat')
+        return _leaderboard_periode_aktif()
 
 
 # ─── Admin: Penetapan Kelulusan ─────────────────────────────────────────────
@@ -451,32 +463,35 @@ class PenetapanKelulusanView(AdminRequiredMixin, View):
 
     def get(self, request):
         form = PenetapanKelulusanForm()
-        leaderboard = RekapLeaderboard.objects.select_related(
-            'id_pendaftaran__id_biodata',
-        ).order_by('peringkat')
         return render(request, self.template_name, {
             'form': form,
-            'leaderboard': leaderboard,
+            'leaderboard': _leaderboard_periode_aktif(),
         })
 
     def post(self, request):
         form = PenetapanKelulusanForm(request.POST)
         if form.is_valid():
+            periode_aktif = PeriodeDAD.get_active_period()
+            if periode_aktif is None:
+                messages.error(
+                    request,
+                    'Tidak ada periode DAD yang aktif. Aktifkan periode '
+                    'terlebih dahulu sebelum menetapkan kelulusan.'
+                )
+                return redirect('penilaian_admin:penetapan_kelulusan')
+
             passing_grade = form.cleaned_data['passing_grade']
-            result = KelulusanService.tetapkan_kelulusan(passing_grade)
+            result = KelulusanService.tetapkan_kelulusan(passing_grade, periode_aktif)
             messages.success(
                 request,
                 f'Kelulusan berhasil ditetapkan! '
                 f'Lulus: {result["lulus"]} peserta, '
                 f'Tidak Lulus: {result["tidak_lulus"]} peserta. '
-                f'(Passing Grade: {passing_grade})'
+                f'(Passing Grade: {passing_grade}, Periode: {periode_aktif.nama_periode})'
             )
             return redirect('penilaian_admin:penetapan_kelulusan')
 
-        leaderboard = RekapLeaderboard.objects.select_related(
-            'id_pendaftaran__id_biodata',
-        ).order_by('peringkat')
         return render(request, self.template_name, {
             'form': form,
-            'leaderboard': leaderboard,
+            'leaderboard': _leaderboard_periode_aktif(),
         })

@@ -201,9 +201,17 @@ class RekapLeaderboard(models.Model):
 
     @classmethod
     def perbarui_semua_peringkat(cls) -> None:
-        """Urutkan ulang semua entri berdasarkan total_akhir secara menurun."""
-        semua_rekap = cls.objects.order_by('-total_akhir')
-        for idx, rekap in enumerate(semua_rekap, start=1):
+        """Urutkan ulang peringkat per periode DAD berdasarkan total_akhir menurun.
+
+        Peringkat dihitung terpisah untuk tiap periode (1, 2, 3, ... per
+        periode) agar peserta antar-periode tidak saling bersaing di ranking.
+        """
+        semua_rekap = cls.objects.select_related('id_pendaftaran').order_by('-total_akhir')
+        urutan_per_periode: dict = {}
+        for rekap in semua_rekap:
+            periode_id = rekap.id_pendaftaran.id_periode_id
+            urutan_per_periode[periode_id] = urutan_per_periode.get(periode_id, 0) + 1
+            idx = urutan_per_periode[periode_id]
             if rekap.peringkat != idx:
                 rekap.peringkat = idx
                 rekap.save(update_fields=['peringkat'])
