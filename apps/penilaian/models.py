@@ -111,11 +111,12 @@ class NilaiInterview(models.Model):
         """Hitung nilai interview final (0-100) dan tentukan status.
 
         Final = rata-rata 15 sub-skor = rata-rata 5 nilai kategori.
+        Ambang LULUS interview: rata_rata >= 75.00; di bawah itu GAGAL.
         """
         total = sum((getattr(self, f) for f in self.SUB_FIELDS), Decimal('0'))
         self.rata_rata = (total / Decimal(len(self.SUB_FIELDS))).quantize(Decimal('0.01'))
         self.status_interview = (
-            StatusInterview.LULUS if self.rata_rata >= Decimal('60.00')
+            StatusInterview.LULUS if self.rata_rata >= Decimal('75.00')
             else StatusInterview.GAGAL
         )
 

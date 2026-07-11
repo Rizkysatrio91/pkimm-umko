@@ -54,15 +54,15 @@ class NilaiInterviewFormulaTests(TestCase):
         self.assertEqual(interview.rata_rata, Decimal('0.00'))
         self.assertEqual(interview.status_interview, StatusInterview.GAGAL)
 
-    def test_boundary_60_lulus(self):
-        # Threshold LULUS: rata_rata >= 60.00
-        interview = self._make_interview(Decimal('60.00'))
+    def test_boundary_75_lulus(self):
+        # Threshold LULUS: rata_rata >= 75.00
+        interview = self._make_interview(Decimal('75.00'))
         interview.hitung_rata_rata()
-        self.assertEqual(interview.rata_rata, Decimal('60.00'))
+        self.assertEqual(interview.rata_rata, Decimal('75.00'))
         self.assertEqual(interview.status_interview, StatusInterview.LULUS)
 
-    def test_under_60_gagal(self):
-        interview = self._make_interview(Decimal('59.99'))
+    def test_under_75_gagal(self):
+        interview = self._make_interview(Decimal('74.99'))
         interview.hitung_rata_rata()
         self.assertEqual(interview.status_interview, StatusInterview.GAGAL)
 
