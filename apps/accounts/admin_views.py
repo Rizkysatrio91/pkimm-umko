@@ -84,6 +84,10 @@ class UserUpdateView(AdminRequiredMixin, UpdateView):
     template_name = 'accounts/user_form.html'
     success_url = reverse_lazy('user_admin:user_list')
     pk_url_kwarg = 'pk'
+    # Model bernama `User` → default context_object_name juga 'user', yang akan
+    # menimpa `request.user` di template dan membuat sidebar/navbar salah render
+    # (memakai identitas user yang diedit). Pakai nama lain agar tidak bentrok.
+    context_object_name = 'edit_user'
 
     def get_object(self, queryset=None):
         return get_object_or_404(User, id_user=self.kwargs['pk'])
@@ -166,6 +170,9 @@ class UserDeleteView(AdminRequiredMixin, DeleteView):
     model = User
     template_name = 'accounts/user_confirm_delete.html'
     success_url = reverse_lazy('user_admin:user_list')
+    # Hindari shadow `request.user` (lihat UserUpdateView). Template hapus
+    # memakai `object`, jadi penggantian nama ini aman.
+    context_object_name = 'delete_user'
 
     def get_object(self, queryset=None):
         return get_object_or_404(User, id_user=self.kwargs['pk'])
