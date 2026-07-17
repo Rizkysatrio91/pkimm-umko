@@ -5,36 +5,92 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto"
-     x-data="{ periode: '{{ periode_choices.0.value }}' }">
+     x-data="{
+        periode: '{{ periode_choices.0.value }}',
+        fakultas: '',
+        prodi: '',
+        prodiList: [],
+        init() {
+            const el = document.getElementById('prodi-filter-options');
+            try { this.prodiList = el ? JSON.parse(el.textContent) : []; }
+            catch (e) { this.prodiList = []; }
+        },
+        get filteredProdi() {
+            // Cascade: saat fakultas dipilih, hanya tampilkan prodi milik fakultas
+            // itu. Prodi tanpa fakultas termapping ('') tetap tampil agar tak hilang.
+            if (!this.fakultas) return this.prodiList;
+            return this.prodiList.filter(p => !p.fakultas || p.fakultas === this.fakultas);
+        },
+        onFakultasChange() {
+            // Ganti fakultas → reset prodi supaya tak ada pilihan basi lintas fakultas.
+            this.prodi = '';
+        },
+        get qs() {
+            const p = new URLSearchParams();
+            if (this.periode)  p.set('periode', this.periode);
+            if (this.fakultas) p.set('fakultas', this.fakultas);
+            if (this.prodi)    p.set('prodi', this.prodi);
+            const s = p.toString();
+            return s ? '?' + s : '';
+        },
+        get periodeLabel() {
+            return this.periode
+                ? (document.querySelector('select[x-model=\'periode\'] option:checked')?.text || 'Semua Periode')
+                : 'Semua Periode';
+        }
+     }">
 
-    <!-- Filter Periode -->
+    <!-- Filter Data: Periode + Fakultas + Program Studi -->
     <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">Filter Periode</h3>
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div class="w-full sm:w-72">
-                <label class="block text-xs text-gray-500 mb-1 font-medium">Pilih Periode DAD</label>
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Filter Data</h3>
+            <button type="button" x-show="periode || fakultas || prodi"
+                    @click="periode=''; fakultas=''; prodi=''"
+                    class="text-xs text-maroon hover:underline">Reset filter</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Periode DAD</label>
                 <select x-model="periode"
                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
-                    <option value="">Semua Periode (Tanpa Filter)</option>
+                    <option value="">Semua Periode</option>
                     {% for item in periode_choices %}
                     <option value="{{ item.value }}">{{ item.label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="mt-4 sm:mt-5">
-                <p class="text-xs text-gray-400 leading-relaxed">
-                    Pilih periode untuk memfilter data.<br>
-                    Kosongkan untuk mengambil semua data.
-                </p>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Fakultas</label>
+                <select x-model="fakultas" @change="onFakultasChange()"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
+                    <option value="">Semua Fakultas</option>
+                    {% for fak in fakultas_choices %}
+                    <option value="{{ fak }}">{{ fak }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1 font-medium">Program Studi</label>
+                <select x-model="prodi"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-maroon focus:border-maroon bg-white">
+                    <option value="">Semua Program Studi</option>
+                    <template x-for="p in filteredProdi" :key="p.value">
+                        <option :value="p.value" x-text="p.label"></option>
+                    </template>
+                </select>
             </div>
         </div>
+        <p class="text-xs text-gray-400 leading-relaxed mt-3">
+            Pilih periode, fakultas, dan/atau program studi untuk memfilter data. Kosongkan untuk mengambil semua data.<br>
+            Daftar fakultas &amp; program studi mengikuti data resmi API SSO UMKO.
+        </p>
     </div>
 
-    <!-- Pratinjau Periode Terpilih -->
+    <!-- Pratinjau Filter Terpilih -->
     <div class="mb-5 px-1">
         <span class="text-xs text-gray-500">Data yang akan diexport: </span>
         <span class="text-xs font-semibold text-maroon"
-              x-text="periode ? document.querySelector('select[x-model=\'periode\'] option:checked')?.text : 'Semua Periode'">
+              x-text="periodeLabel + (fakultas ? ' — Fakultas: ' + fakultas : '') + (prodi ? ' — Prodi: ' + prodi : '')">
         </span>
     </div>
 
@@ -52,14 +108,14 @@
             <h3 class="font-semibold text-gray-900 mb-1">Rekap Data Kader</h3>
             <p class="text-xs text-gray-500 mb-5 flex-1">Data seluruh kader terdaftar di PK IMM FTIK UMKO beserta biodata lengkap.</p>
             <div class="flex gap-2">
-                <a :href="'{% url 'laporan:kader_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:kader_pdf' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
                     </svg>
                     Export PDF
                 </a>
-                <a :href="'{% url 'laporan:kader_excel' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:kader_excel' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -81,14 +137,14 @@
             <h3 class="font-semibold text-gray-900 mb-1">Rekap Pendaftar DAD</h3>
             <p class="text-xs text-gray-500 mb-5 flex-1">Data pendaftar Darul Arqom Dasar beserta status verifikasi administrasi.</p>
             <div class="flex gap-2">
-                <a :href="'{% url 'laporan:pendaftar_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:pendaftar_pdf' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
                     </svg>
                     Export PDF
                 </a>
-                <a :href="'{% url 'laporan:pendaftar_excel' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:pendaftar_excel' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -110,14 +166,14 @@
             <h3 class="font-semibold text-gray-900 mb-1">Rekap Kelulusan DAD</h3>
             <p class="text-xs text-gray-500 mb-5 flex-1">Data kelulusan peserta DAD beserta nilai, peringkat, dan status akhir.</p>
             <div class="flex gap-2">
-                <a :href="'{% url 'laporan:kelulusan_pdf' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:kelulusan_pdf' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#5B1525] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[#7A2E3E] transition btn-hover">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
                     </svg>
                     Export PDF
                 </a>
-                <a :href="'{% url 'laporan:kelulusan_excel' %}' + (periode ? '?periode=' + periode : '')"
+                <a :href="'{% url 'laporan:kelulusan_excel' %}' + qs"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition btn-hover">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -234,6 +290,9 @@
         </div>
 
     </div>
+
+    {# Opsi prodi (value/label/fakultas) untuk cascade filter — dibaca Alpine #}
+    {{ prodi_choices|json_script:"prodi-filter-options" }}
 
     {# Data pilihan untuk combobox pencarian (dibaca oleh Alpine component) #}
     {{ kader_choices|json_script:"kader-data" }}
