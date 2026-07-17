@@ -51,8 +51,10 @@ class LoginForm(forms.Form):
 class RegisterForm(forms.ModelForm):
     """Form registrasi calon kader — data mahasiswa diambil otomatis dari SSO UMKO.
 
-    Calon kader hanya mengisi: username, email, NPM, password. Nama lengkap,
-    fakultas, prodi, dll. diambil otomatis dari API SSO UMKO berdasarkan NPM.
+    Calon kader hanya mengisi: username, NPM, password. Nama lengkap, fakultas,
+    prodi, dll. diambil otomatis dari API SSO UMKO berdasarkan NPM. Email akun
+    TIDAK diisi manual — otomatis memakai email kampus (email_kampus) dari SSO,
+    yang sekaligus jadi tujuan verifikasi OTP kepemilikan NPM.
     """
 
     npm = forms.CharField(
@@ -74,10 +76,9 @@ class RegisterForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'email']
+        fields = ['username']
         widgets = {
             'username': forms.TextInput(attrs={'placeholder': 'Username'}),
-            'email': forms.EmailInput(attrs={'placeholder': 'Email'}),
         }
 
     def clean_npm(self):
@@ -117,11 +118,8 @@ class RegisterForm(forms.ModelForm):
         if password1 and password2 and password1 != password2:
             self.add_error('password2', 'Password tidak cocok.')
         username = cleaned_data.get('username', '')
-        email = cleaned_data.get('email', '')
         if password1 and username and password1.lower() == username.lower():
             self.add_error('password1', 'Password tidak boleh sama dengan username.')
-        if password1 and email and password1.lower() == email.lower():
-            self.add_error('password1', 'Password tidak boleh sama dengan email.')
         return cleaned_data
 
 

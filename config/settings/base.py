@@ -19,6 +19,12 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
+# Wajibkan verifikasi OTP ke email kampus saat registrasi calon kader.
+# Default True (AMAN untuk produksi). Di lokal/dev, set False via .env agar data
+# uji bisa masuk otomatis tanpa perlu menerima email kampus. Dibaca dari .env di
+# semua environment sehingga produksi tetap True selama .env produksi tak mengubahnya.
+REGISTRATION_REQUIRE_OTP = env.bool('REGISTRATION_REQUIRE_OTP', default=True)
+
 # Definisi aplikasi
 INSTALLED_APPS = [
     'django.contrib.admin',

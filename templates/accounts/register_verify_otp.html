@@ -1,0 +1,105 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Pendaftaran - PK IMM FTIK UMKO</title>
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="icon" type="image/png" href="{% static 'images/logo_pk_imm_ftik.png' %}">
+</head>
+<body class="min-h-full bg-gradient-to-br from-[#2D0810] via-[#3D0C15] to-[#2D0810] flex items-center justify-center p-4" x-data="otpTimer()">
+    <div class="w-full max-w-sm">
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-8">
+            <a href="{% url 'accounts:register' %}" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <h1 class="text-white font-bold text-lg">Pendaftaran Akun</h1>
+        </div>
+
+        <!-- Flash Messages -->
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+            <div class="px-4 py-3 rounded-xl text-sm
+                 {% if message.tags == 'error' %}bg-red-900/40 text-red-300 border border-red-700/30
+                 {% else %}bg-blue-900/40 text-blue-300 border border-blue-700/30{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- OTP -->
+        <div class="text-center mb-6">
+            <!-- Timer Circle -->
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full border-4 mb-4"
+                 :class="timeLeft > 0 ? 'border-[#5B1525]' : 'border-red-400/40'">
+                <span class="text-xl font-bold" :class="timeLeft > 0 ? 'text-white' : 'text-red-400'"
+                      x-text="formatTime()"></span>
+            </div>
+            <h2 class="text-white font-bold text-lg">Verifikasi Email Kampus</h2>
+            <p class="text-white/40 text-sm mt-1">
+                Kami mengirim kode 6 digit ke email kampus Anda
+            </p>
+            <p class="text-white/70 text-sm mt-1 font-mono">{{ masked_email }}</p>
+            <p class="text-white/30 text-xs mt-2 leading-relaxed">
+                Ini memastikan Anda benar pemilik NPM tersebut. Akun baru dibuat
+                setelah kode terverifikasi.
+            </p>
+        </div>
+
+        <form method="POST" action="{% url 'accounts:register_verify_otp' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="text" name="otp" id="id_otp" maxlength="6" pattern="[0-9]{6}"
+                   inputmode="numeric" autocomplete="one-time-code"
+                   placeholder="000000"
+                   class="w-full px-4 py-4 border border-white/10 rounded-xl text-white placeholder-white/20 text-center text-3xl tracking-[0.6em] font-mono text-sm focus:ring-2 focus:ring-maroon transition
+                          {% if form.otp.errors %}border-red-500/50{% endif %}"
+                   style="background: rgba(255,255,255,0.06)">
+            {% for error in form.otp.errors %}
+            <p class="text-xs text-red-400 text-center">{{ error }}</p>
+            {% endfor %}
+            <button type="submit" :disabled="timeLeft <= 0"
+                    class="w-full bg-[#5B1525] text-white py-3 rounded-xl font-bold text-sm hover:bg-maroon transition uppercase tracking-wide disabled:opacity-40 disabled:cursor-not-allowed">
+                VERIFIKASI &amp; BUAT AKUN
+            </button>
+        </form>
+
+        <p class="text-center mt-4">
+            <a href="{% url 'accounts:register_verify_otp' %}?action=resend" class="text-white/40 hover:text-white/70 text-sm transition">
+                Kirim ulang OTP &rarr;
+            </a>
+        </p>
+    </div>
+
+    <script>
+        function otpTimer() {
+            return {
+                timeLeft: 600,
+                init() {
+                    this.countdown();
+                },
+                countdown() {
+                    if (this.timeLeft > 0) {
+                        setTimeout(() => {
+                            this.timeLeft--;
+                            this.countdown();
+                        }, 1000);
+                    }
+                },
+                formatTime() {
+                    const m = Math.floor(this.timeLeft / 60);
+                    const s = this.timeLeft % 60;
+                    return `${m}:${s.toString().padStart(2, '0')}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

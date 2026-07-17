@@ -196,6 +196,19 @@ class RateLimiter:
         ip = cls.get_client_ip(request)
         return cls.is_rate_limited(f"forgot_pwd_{ip}", max_requests=3, period_seconds=900)
 
+    # === REGISTER OTP SEND RATE LIMIT ===
+
+    @classmethod
+    def check_register_otp_limit(cls, request) -> tuple:
+        """Batasi pengiriman OTP verifikasi pendaftaran: maks 3 per 15 menit per IP.
+
+        Mencegah penyalahgunaan: attacker yang memasukkan NPM orang lain hanya
+        akan memicu OTP ke email kampus korban (yang tak bisa ia baca). Rate
+        limit ini menahan spam ke inbox korban sekaligus enumerasi NPM massal.
+        """
+        ip = cls.get_client_ip(request)
+        return cls.is_rate_limited(f"register_otp_{ip}", max_requests=3, period_seconds=900)
+
     # === CHATBOT RATE LIMIT ===
     #
     # Strategi berlapis:

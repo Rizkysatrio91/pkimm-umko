@@ -1,13 +1,16 @@
 """View untuk app accounts — semua menggunakan CBV."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 
@@ -92,6 +95,70 @@ class LogoutView(View):
         return self.get(request)
 
 
+def _mask_email(email: str) -> str:
+    """Samarkan sebagian email agar tak membocorkan alamat penuh di layar.
+
+    Contoh: '2259201005@umko.ac.id' → '22•••••••5@umko.ac.id'.
+    """
+    local, sep, domain = (email or '').partition('@')
+    if not sep:
+        return email or ''
+    if len(local) <= 3:
+        masked = local[:1] + '•' * max(1, len(local) - 1)
+    else:
+        masked = local[:2] + '•' * (len(local) - 3) + local[-1]
+    return f'{masked}@{domain}'
+
+
+def _create_calon_kader_account(pending: dict) -> None:
+    """Buat User (role calon_kader) + BiodataKader dari data pending registrasi.
+
+    Dipakai dua jalur: registrasi langsung (dev/lokal, tanpa OTP) dan setelah
+    verifikasi OTP (produksi). Email akun = email kampus. Password sudah di-hash
+    saat langkah 1 sehingga di-set langsung tanpa hashing ulang.
+    """
+    from apps.kader.models import BiodataKader
+
+    bio = pending['biodata']
+    npm = pending['npm']
+
+    tgl_lahir = None
+    raw_tgl = bio.get('tgl_lahir') or ''
+    if raw_tgl:
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
+            try:
+                tgl_lahir = datetime.strptime(str(raw_tgl)[:10], fmt).date()
+                break
+            except ValueError:
+                continue
+
+    angkatan = f"20{npm[:2]}" if len(npm) >= 2 and npm[:2].isdigit() else ''
+
+    with transaction.atomic():
+        user = User(
+            username=pending['username'],
+            email=pending['email'],
+            role='calon_kader',
+        )
+        user.password = pending['password_hash']  # sudah di-hash, jangan hash ulang
+        user.save()
+
+        BiodataKader.objects.create(
+            id_user=user,
+            npm=npm,
+            nama_lengkap=bio.get('nama', ''),
+            program_studi=(bio.get('program_studi') or '')[:50],
+            fakultas=(bio.get('fakultas') or '')[:50],
+            angkatan=angkatan[:4],
+            tempat_lahir=(bio.get('tempat_lahir') or '')[:50],
+            tgl_lahir=tgl_lahir,
+            jenis_kelamin=(bio.get('jenis_kelamin') or '')[:1],
+            alamat_domisili=bio.get('alamat') or '',
+            no_hp=(bio.get('hp') or '')[:15],
+            jabatan_struktural='calon',
+        )
+
+
 class RegisterView(View):
     """Registrasi untuk calon kader."""
 
@@ -123,7 +190,7 @@ class RegisterView(View):
             return render(request, self.template_name, {'form': form})
 
         # 2. Cek prodi diizinkan berdasarkan konfigurasi admin
-        from apps.kader.models import BiodataKader, KonfigurasiSistem
+        from apps.kader.models import KonfigurasiSistem
         konfig = KonfigurasiSistem.get_instance()
         if not konfig.sso_id_fakultas or not konfig.allowed_prodi_codes:
             messages.error(
@@ -140,46 +207,165 @@ class RegisterView(View):
             )
             return render(request, self.template_name, {'form': form})
 
-        # 3. Auto-fill BiodataKader dari data SSO + buat User
-        with transaction.atomic():
-            user = form.save(commit=False)
-            user.role = 'calon_kader'
-            user.set_password(form.cleaned_data['password1'])
-            user.save()
+        # 3. Siapkan data pending. Email AKUN = email kampus dari SSO (bukan email
+        #    bebas) — sekaligus tujuan OTP. Password di-hash sejak sekarang.
+        campus_email = (mhs.get('email_kampus') or '').strip() or f'{npm}@umko.ac.id'
+        pending = {
+            'username': form.cleaned_data['username'],
+            'email': campus_email,
+            'password_hash': make_password(form.cleaned_data['password1']),
+            'npm': npm,
+            'campus_email': campus_email,
+            'biodata': {
+                'nama': mhs.get('nama', ''),
+                'program_studi': mhs.get('program_studi', ''),
+                'tempat_lahir': mhs.get('tempat_lahir', ''),
+                'tgl_lahir': str(mhs.get('tanggal_lahir') or mhs.get('tgl_lahir') or ''),
+                'jenis_kelamin': mhs.get('jenis_kelamin', ''),
+                'alamat': mhs.get('alamat_domisili') or mhs.get('alamat', ''),
+                'hp': mhs.get('hp', ''),
+                'fakultas': konfig.sso_nama_fakultas,
+            },
+        }
 
-            # Parse tanggal lahir (SSO bisa kirim string "YYYY-MM-DD" atau "DD-MM-YYYY")
-            tgl_lahir = None
-            raw_tgl = mhs.get('tanggal_lahir') or mhs.get('tgl_lahir') or ''
-            if raw_tgl:
-                for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
-                    try:
-                        tgl_lahir = datetime.strptime(str(raw_tgl)[:10], fmt).date()
-                        break
-                    except ValueError:
-                        continue
-
-            # Angkatan: 2 digit pertama NPM → tahun 20xx
-            angkatan = f"20{npm[:2]}" if len(npm) >= 2 and npm[:2].isdigit() else ''
-
-            BiodataKader.objects.create(
-                id_user=user,
-                npm=npm,
-                nama_lengkap=mhs.get('nama', ''),
-                program_studi=mhs.get('program_studi', '')[:50],
-                fakultas=konfig.sso_nama_fakultas[:50],
-                angkatan=angkatan[:4],
-                tempat_lahir=mhs.get('tempat_lahir', '')[:50],
-                tgl_lahir=tgl_lahir,
-                jenis_kelamin=mhs.get('jenis_kelamin', '')[:1],
-                alamat_domisili=mhs.get('alamat_domisili') or mhs.get('alamat', ''),
-                no_hp=(mhs.get('hp') or '')[:15],
-                jabatan_struktural='calon',
+        # LOKAL/DEV (REGISTRATION_REQUIRE_OTP=False): buat akun LANGSUNG tanpa OTP,
+        # supaya data uji masuk otomatis tanpa perlu menerima email kampus.
+        if not settings.REGISTRATION_REQUIRE_OTP:
+            try:
+                _create_calon_kader_account(pending)
+            except IntegrityError:
+                messages.error(
+                    request,
+                    'Username atau email kampus untuk NPM ini sudah terdaftar.',
+                )
+                return render(request, self.template_name, {'form': form})
+            messages.success(
+                request,
+                'Registrasi berhasil! Biodata terisi otomatis dari SSO UMKO. Silakan login.',
             )
+            return redirect('accounts:login')
 
+        # PRODUKSI (default True): wajib verifikasi OTP ke email kampus sebagai
+        # bukti kepemilikan NPM. Akun BELUM dibuat sampai OTP cocok — orang yang
+        # memasukkan NPM acak milik mahasiswa lain tidak bisa menyelesaikannya.
+        is_limited, _, retry = RateLimiter.check_register_otp_limit(request)
+        if is_limited:
+            menit = max(1, retry // 60)
+            messages.error(
+                request,
+                f'Terlalu banyak permintaan kode verifikasi. Coba lagi dalam {menit} menit.',
+            )
+            return render(request, self.template_name, {'form': form})
+
+        code = OTPService.generate_code()
+        pending['otp_hash'] = make_password(code)
+        pending['otp_expires'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+        request.session['pending_registration'] = pending
+        OTPService.send_registration_otp(campus_email, code, pending['username'])
+        messages.info(
+            request,
+            f'Kode verifikasi telah dikirim ke email kampus Anda ({_mask_email(campus_email)}). '
+            f'Masukkan kode tersebut untuk menyelesaikan pendaftaran.',
+        )
+        return redirect('accounts:register_verify_otp')
+
+
+class RegisterVerifyOTPView(View):
+    """Langkah 2 pendaftaran: verifikasi OTP yang dikirim ke email kampus.
+
+    Akun + biodata baru dibuat DI SINI, hanya setelah OTP cocok — membuktikan
+    pendaftar adalah pemilik NPM (punya akses ke mailbox @umko.ac.id).
+    """
+
+    template_name = 'accounts/register_verify_otp.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('accounts:login_redirect')
+        if 'pending_registration' not in request.session:
+            messages.error(request, 'Silakan mulai pendaftaran terlebih dahulu.')
+            return redirect('accounts:register')
+        return super().dispatch(request, *args, **kwargs)
+
+    def _render(self, request, form):
+        pending = request.session['pending_registration']
+        return render(request, self.template_name, {
+            'form': form,
+            'masked_email': _mask_email(pending['campus_email']),
+        })
+
+    def get(self, request):
+        if request.GET.get('action') == 'resend':
+            return self._resend(request)
+        return self._render(request, VerifyOTPForm())
+
+    def _resend(self, request):
+        is_limited, _, retry = RateLimiter.check_register_otp_limit(request)
+        if is_limited:
+            menit = max(1, retry // 60)
+            messages.error(
+                request,
+                f'Terlalu banyak permintaan kode. Coba lagi dalam {menit} menit.',
+            )
+            return redirect('accounts:register_verify_otp')
+        pending = request.session['pending_registration']
+        code = OTPService.generate_code()
+        pending['otp_hash'] = make_password(code)
+        pending['otp_expires'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+        request.session['pending_registration'] = pending
+        request.session.modified = True
+        OTPService.send_registration_otp(pending['campus_email'], code, pending['username'])
+        messages.info(request, 'Kode OTP baru telah dikirim ke email kampus Anda.')
+        return redirect('accounts:register_verify_otp')
+
+    def post(self, request):
+        form = VerifyOTPForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form)
+
+        # Anti brute-force: batasi percobaan tebak OTP per IP.
+        is_limited, _, retry = RateLimiter.check_otp_verify_limit(request)
+        if is_limited:
+            menit = max(1, retry // 60)
+            messages.error(
+                request,
+                f'Terlalu banyak percobaan kode OTP. Coba lagi dalam {menit} menit.',
+            )
+            return self._render(request, VerifyOTPForm())
+
+        pending = request.session['pending_registration']
+        otp = form.cleaned_data['otp'].strip()
+
+        expired_at = datetime.fromisoformat(pending['otp_expires'])
+        if timezone.now() >= expired_at:
+            messages.error(
+                request,
+                'Kode OTP sudah kedaluarsa. Klik "Kirim ulang OTP" untuk kode baru.',
+            )
+            return self._render(request, VerifyOTPForm())
+
+        if not check_password(otp, pending['otp_hash']):
+            messages.error(request, 'Kode OTP salah. Periksa email kampus Anda.')
+            return self._render(request, VerifyOTPForm())
+
+        # OTP valid → buat akun + biodata.
+        RateLimiter.reset_otp_verify_limit(request)
+        try:
+            _create_calon_kader_account(pending)
+        except IntegrityError:
+            messages.error(
+                request,
+                'Username, email, atau NPM sudah terdaftar. Silakan mulai '
+                'pendaftaran ulang dengan data yang berbeda.',
+            )
+            request.session.pop('pending_registration', None)
+            return redirect('accounts:register')
+
+        request.session.pop('pending_registration', None)
         messages.success(
             request,
-            f'Registrasi berhasil! Data biodata Anda telah diisi otomatis dari SSO UMKO '
-            f'(nama: {mhs.get("nama")}). Silakan login.'
+            'Verifikasi berhasil! Akun Anda telah dibuat dan biodata terisi '
+            'otomatis dari SSO UMKO. Silakan login.',
         )
         return redirect('accounts:login')
 
