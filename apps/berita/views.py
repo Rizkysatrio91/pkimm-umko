@@ -17,7 +17,9 @@ from core.constants import JabatanKader, StatusBerita
 from core.exceptions import OpenAIServiceError
 from core.mixins import AdminRequiredMixin, PenulisRequiredMixin
 from core.rate_limiter import RateLimiter
+from core.sanitizer import sanitize_html
 from core.services import OpenAIService
+from core.text_guard import STATUS_OK, periksa_naskah
 
 
 # ─── Publik ────────────────────────────────────────────────────────────────
@@ -216,13 +218,31 @@ class KoreksiAIView(LoginRequiredMixin, View):
         if not konten_draft:
             return JsonResponse({'success': False, 'error': 'Konten draft tidak boleh kosong.'}, status=400)
 
+        # Lapis 1 — gerbang deterministik (tanpa biaya token): tolak naskah yang
+        # bukan prosa berbahasa Indonesia SEBELUM menyentuh AI. Mencegah AI
+        # menerjemahkan naskah asing (melanggar aturan anti-halusinasi) atau
+        # "menyertifikasi" kode program sebagai sudah sesuai PUEBI.
+        status_gerbang, pesan_gerbang = periksa_naskah(konten_draft)
+        if status_gerbang != STATUS_OK:
+            return JsonResponse({'success': False, 'error': pesan_gerbang}, status=400)
+
         try:
             service = OpenAIService()
             result = service.koreksi_berita(konten_draft)
+            # Token sudah terpakai begitu API dipanggil — catat biayanya walau
+            # naskah kemudian ditolak AI.
             BudgetLimiter.add_cost(BudgetLimiter.COST_EDITOR)
+
+            # Lapis 2 — AI menolak naskah (mis. bahasa asing yang lolos heuristik).
+            # Jangan pernah menampilkan hasil atau klaim PUEBI untuk naskah ditolak.
+            if result['status'] != STATUS_OK:
+                return JsonResponse({'success': False, 'error': result['saran_ai']}, status=400)
+
             return JsonResponse({
                 'success': True,
-                'konten_final': result['konten_final'],
+                # Sanitasi keluaran AI sebelum dikirim ke browser (defense in
+                # depth) — penyimpanan sudah disanitasi di Berita.save().
+                'konten_final': sanitize_html(result['konten_final']),
                 'saran_ai': result['saran_ai'],
                 'saran_list': result.get('saran_list', []),
             })
