@@ -214,6 +214,25 @@ class SSOService:
             'Accept': 'application/json',
         }
 
+    def _auth_error_message(self, response, default: str) -> str:
+        """Bedakan blokir proteksi bot (Cloudflare challenge) dari penolakan kredensial.
+
+        Cloudflare di depan sso.umko.ac.id bisa men-challenge IP data center
+        (mis. VPS) dan membalas 403 HTML sebelum request sampai ke API —
+        pada kasus itu API key tidak pernah dicek, jadi jangan salahkan kredensial.
+        """
+        is_cf_challenge = (
+            response.headers.get('cf-mitigated') == 'challenge'
+            or 'text/html' in response.headers.get('Content-Type', '')
+        )
+        if is_cf_challenge:
+            return (
+                'Request diblokir proteksi bot (Cloudflare) di depan server SSO UMKO, '
+                'bukan karena API key salah. Minta pengelola SSO UMKO menambahkan '
+                'IP server aplikasi ini ke whitelist.'
+            )
+        return default
+
     def get_mahasiswa_by_nim(self, nim: str) -> dict | None:
         """
         Ambil data mahasiswa dari API SSO berdasarkan NIM.
@@ -247,14 +266,14 @@ class SSOService:
                 return None
 
             elif response.status_code == 401:
-                raise SSOServiceError(
-                    "API Key SSO tidak valid. Hubungi administrator."
-                )
+                raise SSOServiceError(self._auth_error_message(
+                    response, "API Key SSO tidak valid. Hubungi administrator."
+                ))
 
             elif response.status_code == 403:
-                raise SSOServiceError(
-                    "Akses API SSO ditolak. Hubungi administrator."
-                )
+                raise SSOServiceError(self._auth_error_message(
+                    response, "Akses API SSO ditolak. Hubungi administrator."
+                ))
 
             else:
                 raise SSOServiceError(
@@ -285,7 +304,9 @@ class SSOService:
                     return data.get('data') or []
                 return []
             if response.status_code in (401, 403):
-                raise SSOServiceError('Autentikasi API SSO ditolak. Hubungi administrator.')
+                raise SSOServiceError(self._auth_error_message(
+                    response, 'Autentikasi API SSO ditolak. Hubungi administrator.'
+                ))
             raise SSOServiceError(f'Error dari server SSO (HTTP {response.status_code}).')
         except requests.exceptions.Timeout:
             raise SSOServiceError('Server SSO UMKO tidak merespon (timeout).')
